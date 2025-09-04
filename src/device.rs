@@ -1,5 +1,7 @@
 use crate::{
-    interface::{I2cInterface, ReadData, SpiInterface, WriteData}, types::{AccelerometerRange, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType}, AccelConfig, Bmi323, Error, GyroConfig, IOInterruptConfig, InterruptMap1Config, InterruptMap2Config, Register
+    interface::{I2cInterface, ReadData, SpiInterface, WriteData},
+     types::{AccelerometerRange, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType},
+      AccelConfig, Bmi323, Error, GyroConfig, IOInterruptConfig, InterruptMapConfig, Register
 };
 use embedded_hal::delay::DelayNs;
 
@@ -100,17 +102,18 @@ where
         Ok(())
     }
 
-    /// Set first interrupt register configuration
+    /// Set interrupt register configuration
+    /// Note: Interrupt pins are disabled by default use set_io_interrupt_config to configure them
     ///
     /// # Arguments
     ///
     /// * `config` - The interruptMap configuration
-    pub fn set_interrupt_mapping_config(&mut self, config: InterruptMap1Config) ->Result<(), Error<E>>{
+    pub fn set_interrupt_mapping_config(&mut self, config: InterruptMapConfig) ->Result<(), Error<E>>{
         self.write_register_16bit(Register::INT_MAP1, config.map1())?;
         self.write_register_16bit(Register::INT_MAP2, config.map2())
     }
 
-    /// Set first interrupt register configuration
+    /// Set IO interrupt register configuration
     ///
     /// # Arguments
     ///
@@ -119,7 +122,7 @@ where
         self.write_register_16bit(Register::INT_CTRL, u16::from(config))
     }
 
-    /// Set first interrupt register configuration
+    /// Set latching interrupt register configuration
     ///
     /// # Arguments
     ///

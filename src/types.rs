@@ -188,35 +188,52 @@ pub enum SensorType {
     Gyroscope,
 }
 
+/// Mapping of interrupt to specific pin
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InterruptMapping{
+    ///Interrupt is not mapped to any pin
     Disabled = 0x0,
+    ///Interrupt is mapped to Int1 pin
     Int1 = 0x1,
+    ///Interrupt is mapped to Int2 pin
     Int2 = 0x2,
+    ///Interrupt is mapped to I3C IBI pin
     IC3IBI = 0x3,
 }
 
+/// Level of interrupt pin when driven
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InterruptLevel{
+    /// Low when active
     ActiveLow = 0x0,
+    /// High when active
     ActiveHigh = 0x1,
 }
 
+///Type of output
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InterruptOd{
+    /// Push pull 
     PushPull = 0x0,
+    /// Open drain
     OpenDrain = 0x1,
 }
 
+/// Enable interrupt pin
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InterruptEnable{
+    ///Disabled
     Disabled = 0x0,
+    ///Enabled
     Enabled = 0x1,
 }
 
+/// Latching type of Interrupt
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InterruptLatch{
+    /// Non Latched
     NonLatched = 0x0,
+    /// Permanent Latched
     PermanentLatched = 0x1,
 }
 

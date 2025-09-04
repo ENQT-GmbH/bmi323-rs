@@ -12,12 +12,11 @@ pub use registers::Register;
 mod types;
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, GyroscopePowerMode,
-    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled,
+    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled, 
+    InterruptEnable, InterruptLatch, InterruptLevel, InterruptMapping, InterruptOd,
 };
 mod sensor_data;
 pub use sensor_data::*;
-
-use crate::types::{InterruptEnable, InterruptLevel, InterruptMapping, InterruptOd};
 
 /// Main struct representing the BMI323 device
 pub struct Bmi323<DI, D> {
@@ -355,25 +354,29 @@ impl InterruptMapBuilder {
 }
 
 impl InterruptMapConfig {
-    pub fn map1(config: &Self) -> u16 {
-        config.no_motion as u16  & 0x04 | 
-        (config.any_motion as u16  & 0x04) << 2 | 
-        (config.flat as u16 & 0x04) << 4 | 
-        (config.orientation as u16 & 0x04) << 6 | 
-        (config.step_detector as u16 & 0x04) << 8 | 
-        (config.step_counter as u16 & 0x04) << 10 | 
-        (config.sig_motion as u16 & 0x04) << 12 | 
-        (config.tilt_out as u16 & 0x04) << 14 
+    pub fn builder() -> InterruptMapBuilder{
+        InterruptMapBuilder::default()
     }
-    pub fn map2(config: &Self) -> u16 {
-        config.tap as u16  & 0x04 | 
-        (config.i3c as u16  & 0x04) << 2 | 
-        (config.err_status as u16 & 0x04) << 4 | 
-        (config.temp_drdy as u16 & 0x04) << 6 | 
-        (config.gyr_drdy as u16 & 0x04) << 8 | 
-        (config.acc_drdy as u16 & 0x04) << 10 | 
-        (config.fifo_watermark as u16 & 0x04) << 12 | 
-        (config.fifo_full as u16 & 0x04) << 14 
+    fn map1(&self) -> u16 {
+        self.no_motion as u16  & 0x04 | 
+        (self.any_motion as u16  & 0x04) << 2 | 
+        (self.flat as u16 & 0x04) << 4 | 
+        (self.orientation as u16 & 0x04) << 6 | 
+        (self.step_detector as u16 & 0x04) << 8 | 
+        (self.step_counter as u16 & 0x04) << 10 | 
+        (self.sig_motion as u16 & 0x04) << 12 | 
+        (self.tilt_out as u16 & 0x04) << 14 
+    }
+
+    fn map2(&self) -> u16 {
+        self.tap as u16  & 0x04 | 
+        (self.i3c as u16  & 0x04) << 2 | 
+        (self.err_status as u16 & 0x04) << 4 | 
+        (self.temp_drdy as u16 & 0x04) << 6 | 
+        (self.gyr_drdy as u16 & 0x04) << 8 | 
+        (self.acc_drdy as u16 & 0x04) << 10 | 
+        (self.fifo_watermark as u16 & 0x04) << 12 | 
+        (self.fifo_full as u16 & 0x04) << 14 
     }
 }
 
@@ -385,6 +388,12 @@ pub struct IOInterruptConfig{
     int2_lvl : InterruptLevel,
     int2_od : InterruptOd,
     int2_en : InterruptEnable,
+}
+
+impl IOInterruptConfig{
+    pub fn builder() -> IOInterruptConfigBuilder{
+        IOInterruptConfigBuilder::default()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
