@@ -6,7 +6,7 @@
 /// It supports both I2C and SPI interfaces and allows for configuration of accelerometer
 /// and gyroscope settings.
 pub mod device;
-mod interface;
+pub mod interface;
 mod registers;
 pub use registers::Register;
 mod types;
@@ -16,6 +16,8 @@ pub use types::{
 };
 mod sensor_data;
 pub use sensor_data::*;
+
+use crate::types::{InterruptEnable, InterruptLevel, InterruptMapping, InterruptOd};
 
 /// Main struct representing the BMI323 device
 pub struct Bmi323<DI, D> {
@@ -222,5 +224,224 @@ impl From<GyroConfig> for u16 {
             | ((config.bw as u16 & 0x01) << 7)
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InterruptMapConfig{
+    no_motion : InterruptMapping,
+    any_motion : InterruptMapping,
+    flat : InterruptMapping,
+    orientation : InterruptMapping,
+    step_detector : InterruptMapping,
+    step_counter : InterruptMapping,
+    sig_motion : InterruptMapping,
+    tilt_out : InterruptMapping,
+    tap : InterruptMapping,
+    i3c : InterruptMapping,
+    err_status : InterruptMapping,
+    temp_drdy : InterruptMapping,
+    gyr_drdy : InterruptMapping,
+    acc_drdy : InterruptMapping,
+    fifo_watermark : InterruptMapping,
+    fifo_full : InterruptMapping,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InterruptMapBuilder{
+    no_motion : Option<InterruptMapping>,
+    any_motion : Option<InterruptMapping>,
+    flat : Option<InterruptMapping>,
+    orientation : Option<InterruptMapping>,
+    step_detector : Option<InterruptMapping>,
+    step_counter : Option<InterruptMapping>,
+    sig_motion : Option<InterruptMapping>,
+    tilt_out : Option<InterruptMapping>,
+    tap : Option<InterruptMapping>,
+    i3c : Option<InterruptMapping>,
+    err_status : Option<InterruptMapping>,
+    temp_drdy : Option<InterruptMapping>,
+    gyr_drdy : Option<InterruptMapping>,
+    acc_drdy : Option<InterruptMapping>,
+    fifo_watermark : Option<InterruptMapping>,
+    fifo_full : Option<InterruptMapping>,
+}
+
+impl InterruptMapBuilder {
+    pub fn no_motion(mut self, mapping: InterruptMapping)->Self{
+        self.no_motion = Some(mapping);
+        self
+    }
+    pub fn any_motion(mut self, mapping: InterruptMapping)->Self{
+        self.any_motion = Some(mapping);
+        self
+    }
+    pub fn flat(mut self, mapping: InterruptMapping)->Self{
+        self.flat = Some(mapping);
+        self
+    }
+    pub fn orientation(mut self, mapping: InterruptMapping)->Self{
+        self.orientation = Some(mapping);
+        self
+    }
+    pub fn step_detector(mut self, mapping: InterruptMapping)->Self{
+        self.step_detector = Some(mapping);
+        self
+    }
+    pub fn step_counter(mut self, mapping: InterruptMapping)->Self{
+        self.step_counter = Some(mapping);
+        self
+    }
+    pub fn sig_motion(mut self, mapping: InterruptMapping)->Self{
+        self.sig_motion = Some(mapping);
+        self
+    }
+    pub fn tilt_out(mut self, mapping: InterruptMapping)->Self{
+        self.tilt_out = Some(mapping);
+        self
+    }
+    pub fn tap(mut self, mapping: InterruptMapping)->Self{
+        self.tap = Some(mapping);
+        self
+    }
+    pub fn i3c(mut self, mapping: InterruptMapping)->Self{
+        self.i3c = Some(mapping);
+        self
+    }
+    pub fn err_status(mut self, mapping: InterruptMapping)->Self{
+        self.err_status = Some(mapping);
+        self
+    }
+    pub fn temp_drdy(mut self, mapping: InterruptMapping)->Self{
+        self.temp_drdy = Some(mapping);
+        self
+    }
+    pub fn gyr_drdy(mut self, mapping: InterruptMapping)->Self{
+        self.gyr_drdy = Some(mapping);
+        self
+    }
+    pub fn acc_drdy(mut self, mapping: InterruptMapping)->Self{
+        self.acc_drdy = Some(mapping);
+        self
+    }
+    pub fn fifo_watermark(mut self, mapping: InterruptMapping)->Self{
+        self.fifo_watermark = Some(mapping);
+        self
+    }
+    pub fn fifo_full(mut self, mapping: InterruptMapping)->Self{
+        self.fifo_full = Some(mapping);
+        self
+    }
+    pub fn build(self)->InterruptMapConfig{
+        InterruptMapConfig {
+            no_motion: self.no_motion.unwrap_or(InterruptMapping::Disabled),
+            any_motion : self.any_motion.unwrap_or(InterruptMapping::Disabled),
+            flat : self.flat.unwrap_or(InterruptMapping::Disabled),
+            orientation : self.orientation.unwrap_or(InterruptMapping::Disabled),
+            step_detector : self.step_detector.unwrap_or(InterruptMapping::Disabled),
+            step_counter : self.step_counter.unwrap_or(InterruptMapping::Disabled),
+            sig_motion  : self.sig_motion.unwrap_or(InterruptMapping::Disabled),
+            tilt_out : self.tilt_out.unwrap_or(InterruptMapping::Disabled),
+            tap: self.tap.unwrap_or(InterruptMapping::Disabled),
+            i3c : self.i3c.unwrap_or(InterruptMapping::Disabled),
+            err_status : self.err_status.unwrap_or(InterruptMapping::Disabled),
+            temp_drdy : self.temp_drdy.unwrap_or(InterruptMapping::Disabled),
+            gyr_drdy : self.gyr_drdy.unwrap_or(InterruptMapping::Disabled),
+            acc_drdy : self.acc_drdy.unwrap_or(InterruptMapping::Disabled),
+            fifo_watermark  : self.fifo_watermark.unwrap_or(InterruptMapping::Disabled),
+            fifo_full : self.fifo_full.unwrap_or(InterruptMapping::Disabled),
+        }
+    }
+}
+
+impl InterruptMapConfig {
+    pub fn map1(config: &Self) -> u16 {
+        config.no_motion as u16  & 0x04 | 
+        (config.any_motion as u16  & 0x04) << 2 | 
+        (config.flat as u16 & 0x04) << 4 | 
+        (config.orientation as u16 & 0x04) << 6 | 
+        (config.step_detector as u16 & 0x04) << 8 | 
+        (config.step_counter as u16 & 0x04) << 10 | 
+        (config.sig_motion as u16 & 0x04) << 12 | 
+        (config.tilt_out as u16 & 0x04) << 14 
+    }
+    pub fn map2(config: &Self) -> u16 {
+        config.tap as u16  & 0x04 | 
+        (config.i3c as u16  & 0x04) << 2 | 
+        (config.err_status as u16 & 0x04) << 4 | 
+        (config.temp_drdy as u16 & 0x04) << 6 | 
+        (config.gyr_drdy as u16 & 0x04) << 8 | 
+        (config.acc_drdy as u16 & 0x04) << 10 | 
+        (config.fifo_watermark as u16 & 0x04) << 12 | 
+        (config.fifo_full as u16 & 0x04) << 14 
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct IOInterruptConfig{
+    int1_lvl : InterruptLevel,
+    int1_od : InterruptOd,
+    int1_en : InterruptEnable,
+    int2_lvl : InterruptLevel,
+    int2_od : InterruptOd,
+    int2_en : InterruptEnable,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct IOInterruptConfigBuilder{
+    int1_lvl : Option<InterruptLevel>,
+    int1_od : Option<InterruptOd>,
+    int1_en : Option<InterruptEnable>,
+    int2_lvl : Option<InterruptLevel>,
+    int2_od : Option<InterruptOd>,
+    int2_en : Option<InterruptEnable>,
+}
+
+impl IOInterruptConfigBuilder{
+    pub fn int1_lvl(mut self, level: InterruptLevel)->Self{
+        self.int1_lvl = Some(level);
+        self
+    }
+    pub fn int1_od(mut self, od: InterruptOd)->Self{
+        self.int1_od = Some(od);
+        self
+    }
+    pub fn int1_enable(mut self, enable: InterruptEnable)->Self{
+        self.int1_en = Some(enable);
+        self
+    }
+    pub fn int2_lvl(mut self, level: InterruptLevel)->Self{
+        self.int2_lvl = Some(level);
+        self
+    }
+    pub fn int2_od(mut self, od: InterruptOd)->Self{
+        self.int1_od = Some(od);
+        self
+    }
+    pub fn int2_enable(mut self, enable: InterruptEnable)->Self{
+        self.int2_en = Some(enable);
+        self
+    }
+    pub fn build(self)->IOInterruptConfig{
+        IOInterruptConfig {
+            int1_lvl: self.int1_lvl.unwrap_or(InterruptLevel::ActiveLow),
+            int1_od: self.int1_od.unwrap_or(InterruptOd::PushPull),
+            int1_en : self.int1_en.unwrap_or(InterruptEnable::Disabled),
+            int2_lvl: self.int2_lvl.unwrap_or(InterruptLevel::ActiveLow),
+            int2_od: self.int2_od.unwrap_or(InterruptOd::PushPull),
+            int2_en : self.int2_en.unwrap_or(InterruptEnable::Disabled),
+
+        }
+    }
+}
+
+impl From<IOInterruptConfig> for u16 {
+    fn from(config: IOInterruptConfig) -> Self {
+        (config.int1_lvl as u16 & 0x1) |
+        (config.int1_od as u16 & 0x1) << 1 |
+        (config.int1_en as u16 & 0x1) << 2 |
+        (config.int2_lvl as u16 & 0x1) << 7 |
+        (config.int2_od as u16 & 0x1) << 8 |
+        (config.int2_en as u16 & 0x1) << 9
     }
 }

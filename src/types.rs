@@ -187,3 +187,36 @@ pub enum SensorType {
     Accelerometer,
     Gyroscope,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InterruptMapping{
+    Disabled = 0x0,
+    Int1 = 0x1,
+    Int2 = 0x2,
+    IC3IBI = 0x3,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InterruptLevel{
+    ActiveLow = 0x0,
+    ActiveHigh = 0x1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InterruptOd{
+    PushPull = 0x0,
+    OpenDrain = 0x1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InterruptEnable{
+    Disabled = 0x0,
+    Enabled = 0x1,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InterruptLatch{
+    NonLatched = 0x0,
+    PermanentLatched = 0x1,
+}
+
