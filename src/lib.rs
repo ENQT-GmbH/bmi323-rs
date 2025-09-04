@@ -247,7 +247,7 @@ pub struct InterruptMapConfig{
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct InterruptMapBuilder{
+pub struct InterruptMapConfigBuilder{
     no_motion : Option<InterruptMapping>,
     any_motion : Option<InterruptMapping>,
     flat : Option<InterruptMapping>,
@@ -266,7 +266,7 @@ pub struct InterruptMapBuilder{
     fifo_full : Option<InterruptMapping>,
 }
 
-impl InterruptMapBuilder {
+impl InterruptMapConfigBuilder {
     pub fn no_motion(mut self, mapping: InterruptMapping)->Self{
         self.no_motion = Some(mapping);
         self
@@ -354,8 +354,8 @@ impl InterruptMapBuilder {
 }
 
 impl InterruptMapConfig {
-    pub fn builder() -> InterruptMapBuilder{
-        InterruptMapBuilder::default()
+    pub fn builder() -> InterruptMapConfigBuilder{
+        InterruptMapConfigBuilder::default()
     }
     fn map1(&self) -> u16 {
         self.no_motion as u16  & 0x04 | 
