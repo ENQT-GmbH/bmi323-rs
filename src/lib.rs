@@ -247,7 +247,7 @@ pub struct InterruptMapConfig{
     fifo_full : InterruptMapping,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct InterruptMapBuilder{
     no_motion : Option<InterruptMapping>,
     any_motion : Option<InterruptMapping>,
@@ -387,7 +387,7 @@ pub struct IOInterruptConfig{
     int2_en : InterruptEnable,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct IOInterruptConfigBuilder{
     int1_lvl : Option<InterruptLevel>,
     int1_od : Option<InterruptOd>,
