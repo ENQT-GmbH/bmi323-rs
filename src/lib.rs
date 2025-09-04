@@ -6,7 +6,7 @@
 /// It supports both I2C and SPI interfaces and allows for configuration of accelerometer
 /// and gyroscope settings.
 pub mod device;
-pub mod interface;
+mod interface;
 mod registers;
 pub use registers::Register;
 mod types;
@@ -17,6 +17,7 @@ pub use types::{
 };
 mod sensor_data;
 pub use sensor_data::*;
+pub use interface::{I2cInterface,SpiInterface};
 
 /// Main struct representing the BMI323 device
 pub struct Bmi323<DI, D> {
