@@ -34,7 +34,7 @@ pub struct Bmi323<DI, D> {
 }
 
 /// Configuration for the accelerometer
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AccelConfig {
     /// Output data rate
     pub odr: OutputDataRate,
@@ -121,7 +121,7 @@ impl AccelConfigBuilder {
 }
 
 /// Configuration for the gyroscope
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GyroConfig {
     /// Output data rate
     pub odr: OutputDataRate,
@@ -253,7 +253,7 @@ impl From<GyroConfig> for u16 {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InterruptMapConfig{
     no_motion : InterruptMapping,
     any_motion : InterruptMapping,
