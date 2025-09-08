@@ -5,6 +5,8 @@
 /// This module provides a high-level interface for interacting with the Bosch BMI323 IMU.
 /// It supports both I2C and SPI interfaces and allows for configuration of accelerometer
 /// and gyroscope settings.
+use num_traits::FromPrimitive;
+
 pub mod device;
 mod interface;
 mod registers;
@@ -213,6 +215,30 @@ impl From<AccelConfig> for u16 {
             | ((config.bw as u16 & 0x01) << 7)
             | ((config.avg_num as u16 & 0x07) << 8)
             | ((config.mode as u16 & 0x07) << 12)
+    }
+}
+
+impl From<u16> for AccelConfig{
+    /// Converts back to a AccelConfig
+    fn from(value: u16) -> Self {
+        AccelConfig { 
+            odr: FromPrimitive::from_u16(value & 0xF).unwrap_or(OutputDataRate::Odr100hz),
+            range: FromPrimitive::from_u16((value >> 4) & 0x7).unwrap_or(AccelerometerRange::G2),
+            bw: FromPrimitive::from_u16((value >> 7) & 0x7).unwrap_or(Bandwidth::OdrHalf),
+            avg_num: FromPrimitive::from_u16((value >> 8) & 0x7).unwrap_or(AverageNum::Avg1),
+            mode: FromPrimitive::from_u16((value >> 12) & 0x7).unwrap_or(AccelerometerPowerMode::Normal)}
+    }
+}
+
+impl From<u16> for GyroConfig{
+    /// Converts back to a GyroConfig
+    fn from(value: u16) -> Self {
+        GyroConfig { 
+            odr: FromPrimitive::from_u16(value & 0xF).unwrap_or(OutputDataRate::Odr100hz),
+            range: FromPrimitive::from_u16((value >> 4) & 0x7).unwrap_or(GyroscopeRange::DPS2000),
+            bw: FromPrimitive::from_u16((value >> 7) & 0x7).unwrap_or(Bandwidth::OdrHalf),
+            avg_num: FromPrimitive::from_u16((value >> 8) & 0x7).unwrap_or(AverageNum::Avg1),
+            mode: FromPrimitive::from_u16((value >> 12) & 0x7).unwrap_or(GyroscopePowerMode::Normal)}
     }
 }
 

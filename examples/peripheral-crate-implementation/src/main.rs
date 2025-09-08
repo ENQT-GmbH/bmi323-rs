@@ -6,13 +6,13 @@ use cortex_m_rt::entry;
 use stm32h5::stm32h563;
 
 use bmi323::{
-    Bmi323, AccelConfig, GyroConfig, OutputDataRate, AccelerometerRange, GyroscopeRange,
-    Bandwidth, AverageNum, AccelerometerPowerMode, GyroscopePowerMode,
+    AccelConfig, AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Bmi323, GyroConfig, GyroscopePowerMode, GyroscopeRange, OutputDataRate
 };
 
 use embedded_hal::delay::DelayNs;
 use embedded_hal::i2c::{ErrorKind, ErrorType, Error as OtherError, SevenBitAddress};
 use embedded_hal::i2c::Operation;
+use stm32h5::stm32h563::i2c1::icr::STOPCF;
 
 #[derive(Debug)]
 pub enum I2cError {
@@ -83,6 +83,7 @@ impl DelayNs for Delay {
     }
 
 }
+
 
 #[entry]
 fn main() -> ! {
@@ -177,7 +178,7 @@ impl I2C1 {
         // Wait until STOP flag is set
         while i2c.isr().read().stopf().bit_is_clear() {}
         // Clear the STOP flag
-        i2c.icr().write(|w| w.stopcf().set_bit());
+        i2c.icr().write(|w| w.stopcf().variant(STOPCF::Clear));
 
         Ok(())
     }
@@ -205,7 +206,7 @@ impl I2C1 {
         // Wait until STOP flag is set
         while i2c.isr().read().stopf().bit_is_clear() {}
         // Clear the STOP flag
-        i2c.icr().write(|w| w.stopcf().set_bit());
+        i2c.icr().write(|w| w.stopcf().variant(STOPCF::Clear));
 
         // Check for NACK
         if i2c.isr().read().nackf().bit_is_set() {

@@ -1,5 +1,7 @@
 use core::fmt::Debug;
 
+use num_derive::FromPrimitive;
+
 /// Possible errors that can occur when interacting with the BMI323
 #[derive(Debug)]
 pub enum Error<E> {
@@ -14,7 +16,7 @@ pub enum Error<E> {
 }
 
 /// Accelerometer power modes
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerPowerMode {
     /// Accelerometer disabled
     Disable = 0x00,
@@ -26,7 +28,7 @@ pub enum AccelerometerPowerMode {
     HighPerf = 0x07,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerRange {
     G2 = 0,
     G4 = 1,
@@ -52,7 +54,7 @@ impl Default for AccelerometerRange {
 }
 
 /// Gyroscope power mode
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopePowerMode {
     /// Gyroscope disabled
     Disable = 0x00,
@@ -67,7 +69,7 @@ pub enum GyroscopePowerMode {
 }
 
 /// Gyroscope measurement ranges
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopeRange {
     /// ±125 degrees per second
     DPS125 = 0,
@@ -111,7 +113,7 @@ pub struct Sensor3DData {
 }
 
 /// Scaled 3D sensor data
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Sensor3DDataScaled {
     /// X-axis scaled value
     pub x: f32,
@@ -122,7 +124,7 @@ pub struct Sensor3DDataScaled {
 }
 
 /// Output data rates for sensors
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum OutputDataRate {
     /// 0.78 Hz
     Odr0_78hz = 0x01,
@@ -155,7 +157,7 @@ pub enum OutputDataRate {
 }
 
 /// Number of samples to average
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AverageNum {
     /// No averaging
     Avg1 = 0x00,
@@ -174,7 +176,7 @@ pub enum AverageNum {
 }
 
 /// Sensor bandwidth settings
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum Bandwidth {
     /// Half of the output data rate
     OdrHalf = 0,
@@ -182,16 +184,17 @@ pub enum Bandwidth {
     OdrQuarter = 1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum SensorType {
     Accelerometer,
     Gyroscope,
 }
 
 /// Mapping of interrupt to specific pin
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
 pub enum InterruptMapping{
-    ///Interrupt is not mapped to any pin
+    ///Interrupt is not mapped to any Pin
+    #[default]
     Disabled = 0x0,
     ///Interrupt is mapped to Int1 pin
     Int1 = 0x1,
@@ -202,36 +205,40 @@ pub enum InterruptMapping{
 }
 
 /// Level of interrupt pin when driven
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default,  FromPrimitive)]
 pub enum InterruptLevel{
     /// Low when active
+    #[default]
     ActiveLow = 0x0,
     /// High when active
     ActiveHigh = 0x1,
 }
 
 ///Type of output
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default,  FromPrimitive)]
 pub enum InterruptOd{
     /// Push pull 
+    #[default]
     PushPull = 0x0,
     /// Open drain
     OpenDrain = 0x1,
 }
 
 /// Enable interrupt pin
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default,  FromPrimitive)]
 pub enum InterruptEnable{
     ///Disabled
+    #[default]
     Disabled = 0x0,
     ///Enabled
     Enabled = 0x1,
 }
 
 /// Latching type of Interrupt
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
 pub enum InterruptLatch{
     /// Non Latched
+    #[default]
     NonLatched = 0x0,
     /// Permanent Latched
     PermanentLatched = 0x1,
