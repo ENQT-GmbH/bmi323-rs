@@ -184,6 +184,13 @@ where
             SensorType::Gyroscope => Ok((status & 0b0100_0000) != 0),     // Check bit 6 (drdy_gyr)
         }
     }
+    
+    /// Read the Timestamp from the device
+    pub fn read_sensor_timestamp(&mut self) -> Result<u32, Error<E>>{
+        let mut time = self.read_register(Register::SENSOR_TIME_0)? as u32;
+        time |= (self.read_register(Register::SENSOR_TIME_1)? as u32) << 16;
+        Ok(time)
+    }
 }
 
 #[cfg(test)]
