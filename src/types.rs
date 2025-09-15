@@ -11,6 +11,8 @@ pub enum Error<E> {
     InvalidConfig,
     /// Timeout error
     Timeout,
+    ///FIFO empty
+    FifoEmpty,
 }
 
 /// Accelerometer power modes
@@ -110,6 +112,15 @@ pub struct Sensor3DData {
     pub z: i16,
 }
 
+pub fn get_sensor3d_data(data: &[u8]) -> Sensor3DData {
+    Sensor3DData {
+        x: i16::from_le_bytes([data[0], data[1]]),
+        y: i16::from_le_bytes([data[2], data[3]]),
+        z: i16::from_le_bytes([data[4], data[5]]),
+    }
+}
+
+
 /// Scaled 3D sensor data
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sensor3DDataScaled {
@@ -119,6 +130,44 @@ pub struct Sensor3DDataScaled {
     pub y: f32,
     /// Z-axis scaled value
     pub z: f32,
+}
+
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FifoData {
+    pub accel: Option<Sensor3DDataScaled>, 
+    pub gyro: Option<Sensor3DDataScaled>,
+    pub temp: Option<u16>,
+    pub timestamp: Option<u32>
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct FifoConfig {
+    pub stop_on_full : bool,
+    pub accel_enabled: bool,
+    pub gyro_enabled: bool,
+    pub temp_enabled: bool,
+    pub timestamp_enabled: bool,
+    ///watermark level in messages
+    pub watermark_level: Option<u16>
+}
+
+impl FifoConfig {
+    pub fn to_register_value(&self) -> u16{
+        self.stop_on_full as u16 |
+        (self.timestamp_enabled as u16) << 8 |
+        (self.accel_enabled as u16) << 9 |
+        (self.gyro_enabled as u16) << 10 |
+        (self.temp_enabled as u16) << 11
+    }
+    pub fn fifo_message_len(&self) -> usize{
+        let mut len = 0;
+        if self.accel_enabled {len+=6;}
+        if self.gyro_enabled {len+=6;}
+        if self.temp_enabled {len+=2;}
+        if self.timestamp_enabled {len+=4;}
+        len
+    }
 }
 
 /// Output data rates for sensors
