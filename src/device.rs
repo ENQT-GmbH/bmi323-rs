@@ -1,5 +1,7 @@
 use crate::{
-    interface::{I2cInterface, ReadData, SpiInterface, WriteData}, types::{get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, Sensor3DData, Sensor3DDataScaled, SensorType}, AccelConfig, Bmi323, Error, FifoConfig, GyroConfig, Register
+    interface::{I2cInterface, ReadData, SpiInterface, WriteData}, 
+    types::{get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType},
+    AccelConfig, Bmi323, Error, FifoConfig, GyroConfig,IOInterruptConfig, InterruptMapConfig, Register
 };
 use embedded_hal::delay::DelayNs;
 
@@ -100,6 +102,35 @@ where
         self.wait_for_data_ready(SensorType::Gyroscope)?;
 
         Ok(())
+    }
+
+    /// Set interrupt register configuration
+    /// Note: Interrupt pins are disabled by default use set_io_interrupt_config to configure them
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The interruptMap configuration
+    pub fn set_interrupt_mapping_config(&mut self, config: InterruptMapConfig) ->Result<(), Error<E>>{
+        self.write_register_16bit(Register::INT_MAP1, config.map1())?;
+        self.write_register_16bit(Register::INT_MAP2, config.map2())
+    }
+
+    /// Set IO interrupt register configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The IOinterrupt configuration
+    pub fn set_io_interrupt_config(&mut self, config: IOInterruptConfig) ->Result<(), Error<E>>{
+        self.write_register_16bit(Register::INT_CTRL, u16::from(config))
+    }
+
+    /// Set latching interrupt register configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The interrupt latching configuration
+    pub fn set_interrupt_lachting_config(&mut self, config: InterruptLatch) ->Result<(), Error<E>>{
+        self.write_register_16bit(Register::INT_CTRL, config as u16)
     }
 
     fn config_to_reg_data<T>(&self, config: T) -> u16

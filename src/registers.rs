@@ -32,7 +32,14 @@ impl Register {
     pub const FIFO_CTRL:u8 = 0x37;
     /// Command register address
     pub const CMD: u8 = 0x7E;
-    
+    /// IO interrupt control register address
+    pub const INT_CTRL: u8 = 0x38;
+    /// Interrupt configuration register address
+    pub const INT_CONF: u8 = 0x39;
+    /// Interrupt Map 1 register address
+    pub const INT_MAP1: u8 = 0x3A;
+    /// Interrupt Map 2 register address
+    pub const INT_MAP2: u8 = 0x3B;
     /// Expected chip ID for BMI323
     pub const BMI323_CHIP_ID: u8 = 0x43;
     /// Soft reset command value
