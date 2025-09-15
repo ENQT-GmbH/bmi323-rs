@@ -1,7 +1,7 @@
 use crate::{
-    interface::{I2cInterface, ReadData, SpiInterface, WriteData},
-     types::{AccelerometerRange, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType},
-      AccelConfig, Bmi323, Error, GyroConfig, IOInterruptConfig, InterruptMapConfig, Register
+    interface::{I2cInterface, ReadData, SpiInterface, WriteData}, 
+    types::{get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType},
+    AccelConfig, Bmi323, Error, FifoConfig, GyroConfig,IOInterruptConfig, InterruptMapConfig, Register
 };
 use embedded_hal::delay::DelayNs;
 
@@ -21,6 +21,7 @@ where
             delay,
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
+            fifo_config : Default::default(),
         }
     }
 }
@@ -41,6 +42,7 @@ where
             delay,
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
+            fifo_config : Default::default(),
         }
     }
 }
@@ -213,12 +215,72 @@ where
             SensorType::Gyroscope => Ok((status & 0b0100_0000) != 0),     // Check bit 6 (drdy_gyr)
         }
     }
+    
+    /// Read the Timestamp from the device
+    pub fn read_sensor_timestamp(&mut self) -> Result<u32, Error<E>>{
+        let mut time = self.read_register(Register::SENSOR_TIME_0)? as u32;
+        time |= (self.read_register(Register::SENSOR_TIME_1)? as u32) << 16;
+        Ok(time)
+  }
+
+    pub fn set_fifo_config(&mut self, config: &FifoConfig)->Result<(), Error<E>>{
+        if *config == self.fifo_config { return Ok(())}
+        self.write_register_16bit(Register::FIFO_CONF, config.to_register_value())?;
+        if let Some(watermark) = config.watermark_level {
+            // convert number of messages to number of 16 bit words while keeping to max value
+            let watermark = (watermark * (config.fifo_message_len()/2) as u16).min(0x3FF);
+            self.write_register_16bit(Register::FIFO_WATERMARK, watermark)?;
+        }
+        self.fifo_config = *config;
+        Ok(())
+    }
+
+    pub fn flush_fifo(&mut self) ->Result<(), Error<E>>{
+        self.write_register_16bit(Register::FIFO_CTRL, 0x01)
+    }
+
+
+    fn get_fifo_fill_state(&mut self) -> Result<u16, Error<E>>{
+        let mut data = [Register::FIFO_FILL_LEVEL,0,0];
+        let res = self.read_data(&mut data)?;
+        Ok(u16::from_le_bytes([res[0], res[1]]))
+    }
+
+    pub fn read_fifo_entry(&mut self)->Result<FifoData, Error<E>>{
+        const FIFO_MESSAGE_LEN_MAX : usize = 22;
+        let message_len = self.fifo_config.fifo_message_len();
+        if message_len > self.get_fifo_fill_state()? as usize{
+            return Err(Error::FifoEmpty);
+        }
+        let mut buffer = [0u8; FIFO_MESSAGE_LEN_MAX+1];
+        buffer[0] = Register::FIFO_DATA;
+        let fifo_data = self.read_data(&mut buffer[0..(message_len+1)])?;
+        let mut index = 0;
+        let mut ret = FifoData::default();
+        if self.fifo_config.accel_enabled{
+            ret.accel = Some(get_sensor3d_data(&fifo_data[index..]).to_mps2(self.accel_range.to_g()));
+            index+=6;
+        }
+        if self.fifo_config.gyro_enabled{
+            ret.gyro = Some(get_sensor3d_data(&fifo_data[index..]).to_mps2(self.accel_range.to_g()));
+            index+=6;
+        }
+        if self.fifo_config.temp_enabled{
+            ret.temp = Some(u16::from_le_bytes([fifo_data[index], fifo_data[index+1]]));
+            index+=2
+        }
+        if self.fifo_config.timestamp_enabled{
+            ret.timestamp = Some(u32::from_le_bytes(
+                [fifo_data[index], fifo_data[index+1],
+                fifo_data[index+2], fifo_data[index+3]]));
+        }
+        Ok(ret)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     fn get_sensor3d_data(data: &[u8]) -> Sensor3DData {
         Sensor3DData {
             x: i16::from_le_bytes([data[0], data[1]]),
@@ -226,7 +288,6 @@ mod tests {
             z: i16::from_le_bytes([data[4], data[5]]),
         }
     }
-
     mod sensor3d_data {
         use super::*;
 
