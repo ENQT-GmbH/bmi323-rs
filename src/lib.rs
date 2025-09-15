@@ -12,7 +12,7 @@ pub use registers::Register;
 mod types;
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, GyroscopePowerMode,
-    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled,
+    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled,FifoConfig
 };
 mod sensor_data;
 pub use sensor_data::*;
@@ -27,6 +27,7 @@ pub struct Bmi323<DI, D> {
     accel_range: AccelerometerRange,
     /// Current gyroscope range
     gyro_range: GyroscopeRange,
+    fifo_config : FifoConfig,
 }
 
 /// Configuration for the accelerometer
