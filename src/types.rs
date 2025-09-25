@@ -1,4 +1,4 @@
-use core::fmt::Debug;
+use core::{fmt::Debug};
 
 use num_derive::FromPrimitive;
 #[cfg(feature = "serde")]
@@ -21,23 +21,25 @@ pub enum Error<E> {
 
 /// Accelerometer power modes
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerPowerMode {
     /// Accelerometer disabled
     Disable = 0x00,
     /// Low power mode
     LowPower = 0x03,
     /// Normal power mode
+    #[default]
     Normal = 0x04,
     /// High performance mode
     HighPerf = 0x07,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerRange {
     G2 = 0,
     G4 = 1,
+    #[default]
     G8 = 2,
     G16 = 3,
 }
@@ -53,15 +55,9 @@ impl AccelerometerRange {
     }
 }
 
-impl Default for AccelerometerRange {
-    fn default() -> Self {
-        AccelerometerRange::G8
-    }
-}
-
 /// Gyroscope power mode
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopePowerMode {
     /// Gyroscope disabled
     Disable = 0x00,
@@ -70,6 +66,7 @@ pub enum GyroscopePowerMode {
     /// Low power mode
     LowPower = 0x03,
     /// Normal power mode
+    #[default]
     Normal = 0x04,
     /// High perfomance mode
     HighPerf = 0x07,
@@ -77,7 +74,7 @@ pub enum GyroscopePowerMode {
 
 /// Gyroscope measurement ranges
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopeRange {
     /// ±125 degrees per second
     DPS125 = 0,
@@ -88,6 +85,7 @@ pub enum GyroscopeRange {
     /// ±1000 degrees per second
     DPS1000 = 3,
     /// ±2000 degrees per second
+    #[default]
     DPS2000 = 4,
 }
 
@@ -100,12 +98,6 @@ impl GyroscopeRange {
             GyroscopeRange::DPS1000 => 1000.0,
             GyroscopeRange::DPS2000 => 2000.0,
         }
-    }
-}
-
-impl Default for GyroscopeRange {
-    fn default() -> Self {
-        GyroscopeRange::DPS2000
     }
 }
 
@@ -181,7 +173,7 @@ impl FifoConfig {
 
 /// Output data rates for sensors
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum OutputDataRate {
     /// 0.78 Hz
     Odr0_78hz = 0x01,
@@ -198,6 +190,7 @@ pub enum OutputDataRate {
     /// 50 Hz
     Odr50hz = 0x07,
     /// 100 Hz
+    #[default]
     Odr100hz = 0x08,
     /// 200 Hz
     Odr200hz = 0x09,
@@ -215,9 +208,10 @@ pub enum OutputDataRate {
 
 /// Number of samples to average
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AverageNum {
     /// No averaging
+    #[default]
     Avg1 = 0x00,
     /// Average 2 samples
     Avg2 = 0x01,
@@ -235,9 +229,10 @@ pub enum AverageNum {
 
 /// Sensor bandwidth settings
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum Bandwidth {
     /// Half of the output data rate
+    #[default]
     OdrHalf = 0,
     /// Quarter of the output data rate
     OdrQuarter = 1,

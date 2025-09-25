@@ -39,7 +39,7 @@ pub struct Bmi323<DI, D> {
 
 /// Configuration for the accelerometer
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct AccelConfig {
     /// Output data rate
     pub odr: OutputDataRate,
@@ -57,12 +57,6 @@ impl AccelConfig {
     /// Create a new AccelConfigBuilder
     pub fn builder() -> AccelConfigBuilder {
         AccelConfigBuilder::default()
-    }
-}
-
-impl Default for AccelConfig {
-    fn default() -> Self {
-        AccelConfigBuilder::default().build()
     }
 }
 
@@ -133,7 +127,7 @@ impl AccelConfigBuilder {
 
 /// Configuration for the gyroscope
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct GyroConfig {
     /// Output data rate
     pub odr: OutputDataRate,
@@ -145,12 +139,6 @@ pub struct GyroConfig {
     pub avg_num: AverageNum,
     /// Power mode
     pub mode: GyroscopePowerMode,
-}
-
-impl Default for  GyroConfig {
-    fn default() -> Self {
-        GyroConfigBuilder::default().build()
-    }
 }
 
 impl GyroConfig {
