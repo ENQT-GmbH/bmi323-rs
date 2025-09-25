@@ -60,6 +60,12 @@ impl AccelConfig {
     }
 }
 
+impl Default for AccelConfig {
+    fn default() -> Self {
+        AccelConfigBuilder::default().build()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct AccelConfigBuilder {
     odr: Option<OutputDataRate>,
@@ -139,6 +145,12 @@ pub struct GyroConfig {
     pub avg_num: AverageNum,
     /// Power mode
     pub mode: GyroscopePowerMode,
+}
+
+impl Default for  GyroConfig {
+    fn default() -> Self {
+        GyroConfigBuilder::default().build()
+    }
 }
 
 impl GyroConfig {
@@ -411,6 +423,12 @@ impl InterruptMapConfig {
         (self.acc_drdy as u16 & 0x04) << 10 | 
         (self.fifo_watermark as u16 & 0x04) << 12 | 
         (self.fifo_full as u16 & 0x04) << 14 
+    }
+}
+
+impl Default for InterruptMapConfig {
+    fn default() -> Self {
+        InterruptMapConfigBuilder::default().build()
     }
 }
 
