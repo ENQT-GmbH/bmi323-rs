@@ -12,9 +12,12 @@ mod interface;
 mod registers;
 pub use registers::Register;
 mod types;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, GyroscopePowerMode,
-    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled, FifoConfig
+    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled, FifoConfig,
     InterruptEnable, InterruptLatch, InterruptLevel, InterruptMapping, InterruptOd,
 };
 mod sensor_data;
@@ -35,6 +38,7 @@ pub struct Bmi323<DI, D> {
 }
 
 /// Configuration for the accelerometer
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AccelConfig {
     /// Output data rate
@@ -122,6 +126,7 @@ impl AccelConfigBuilder {
 }
 
 /// Configuration for the gyroscope
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GyroConfig {
     /// Output data rate
@@ -225,7 +230,7 @@ impl From<u16> for AccelConfig{
         AccelConfig { 
             odr: FromPrimitive::from_u16(value & 0xF).unwrap_or(OutputDataRate::Odr100hz),
             range: FromPrimitive::from_u16((value >> 4) & 0x7).unwrap_or(AccelerometerRange::G2),
-            bw: FromPrimitive::from_u16((value >> 7) & 0x7).unwrap_or(Bandwidth::OdrHalf),
+            bw: FromPrimitive::from_u16((value >> 7) & 0x1).unwrap_or(Bandwidth::OdrHalf),
             avg_num: FromPrimitive::from_u16((value >> 8) & 0x7).unwrap_or(AverageNum::Avg1),
             mode: FromPrimitive::from_u16((value >> 12) & 0x7).unwrap_or(AccelerometerPowerMode::Normal)}
     }
@@ -237,7 +242,7 @@ impl From<u16> for GyroConfig{
         GyroConfig { 
             odr: FromPrimitive::from_u16(value & 0xF).unwrap_or(OutputDataRate::Odr100hz),
             range: FromPrimitive::from_u16((value >> 4) & 0x7).unwrap_or(GyroscopeRange::DPS2000),
-            bw: FromPrimitive::from_u16((value >> 7) & 0x7).unwrap_or(Bandwidth::OdrHalf),
+            bw: FromPrimitive::from_u16((value >> 7) & 0x1).unwrap_or(Bandwidth::OdrHalf),
             avg_num: FromPrimitive::from_u16((value >> 8) & 0x7).unwrap_or(AverageNum::Avg1),
             mode: FromPrimitive::from_u16((value >> 12) & 0x7).unwrap_or(GyroscopePowerMode::Normal)}
     }
@@ -254,6 +259,7 @@ impl From<GyroConfig> for u16 {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InterruptMapConfig{
     no_motion : InterruptMapping,

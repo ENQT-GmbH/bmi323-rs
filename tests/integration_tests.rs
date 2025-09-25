@@ -6,6 +6,27 @@ use embedded_hal_mock::eh1::delay::NoopDelay as MockDelay;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 
 #[test]
+fn test_conversion(){
+     let accel_config = AccelConfig::builder()
+        .odr(OutputDataRate::Odr100hz)
+        .range(AccelerometerRange::G16)
+        .bw(Bandwidth::OdrQuarter) // ODR/4
+        .avg_num(AverageNum::Avg64)
+        .mode(AccelerometerPowerMode::Normal)
+        .build();
+    assert_eq!(accel_config, AccelConfig::from(u16::from(accel_config.clone())));
+
+    let gyro_config = GyroConfig::builder()
+        .odr(OutputDataRate::Odr100hz)
+        .range(GyroscopeRange::DPS2000)
+        .bw(Bandwidth::OdrQuarter) 
+        .avg_num(AverageNum::Avg64)
+        .mode(GyroscopePowerMode::Normal)
+        .build();
+    assert_eq!(gyro_config, GyroConfig::from(u16::from(gyro_config.clone())));
+}
+
+#[test]
 fn test_bmi323_init() {
     let expectations = [
         I2cTransaction::write(0x68, vec![0x7E, 0xAF, 0xDE]),
