@@ -68,7 +68,7 @@ pub enum GyroscopePowerMode {
     /// Normal power mode
     #[default]
     Normal = 0x04,
-    /// High perfomance mode
+    /// High performance mode
     HighPerf = 0x07,
 }
 

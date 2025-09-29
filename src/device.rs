@@ -218,10 +218,10 @@ where
     
     /// Read the Timestamp from the device
     pub fn read_sensor_timestamp(&mut self) -> Result<u32, Error<E>>{
-        let mut time = self.read_register(Register::SENSOR_TIME_0)? as u32;
-        time |= (self.read_register(Register::SENSOR_TIME_1)? as u32) << 16;
-        Ok(time)
-  }
+        let mut data =[Register::SENSOR_TIME_0, 0u8, 0u8, 0u8, 0u8];
+        self.read_data(&mut data)?;
+        Ok(u32::from_le_bytes([data[1], data[2], data[3], data[4]]))
+    }
 
     pub fn set_fifo_config(&mut self, config: &FifoConfig)->Result<(), Error<E>>{
         if *config == self.fifo_config { return Ok(())}

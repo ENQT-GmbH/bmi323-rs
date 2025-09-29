@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, GyroscopePowerMode,
-    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled, FifoConfig,
+    GyroscopeRange, OutputDataRate, Sensor3DData, Sensor3DDataScaled, FifoConfig, FifoData,
     InterruptEnable, InterruptLatch, InterruptLevel, InterruptMapping, InterruptOd,
 };
 mod sensor_data;
