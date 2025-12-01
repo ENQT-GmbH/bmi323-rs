@@ -14,6 +14,8 @@ pub use registers::Register;
 mod types;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "defmt")]
+use defmt::Format;
 
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, FifoConfig, FifoData,
