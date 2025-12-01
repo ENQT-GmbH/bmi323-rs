@@ -82,17 +82,14 @@ impl<I2C, E> ReadData for I2cInterface<I2C>
 where
     I2C: i2c::I2c<Error = E>,
 {
+    // I2C has to read 2 dummy bytes first
     type Error = Error<E>;
     fn read_register(&mut self, register: u8) -> Result<u8, Self::Error> {
-        let mut temp_data = [0u8; 128];
-        let mut data = [0u8; 2];
+        let mut temp_data = [0u8; 3];
         self.i2c
             .write_read(self.address, &[register], &mut temp_data)
             .map_err(Error::Comm)?;
-        for i in 0..data.len() {
-            data[i] = temp_data[i + 2];
-        }
-        Ok(data[0])
+        Ok(temp_data[2])
     }
 
     fn read_data<'a>(&mut self, payload: &'a mut [u8]) -> Result<&'a [u8], Error<E>> {
@@ -118,6 +115,7 @@ impl<SPI, E> ReadData for SpiInterface<SPI>
 where
     SPI: SpiDevice<Error = E>,
 {
+    //spi reads one dummy byte first
     type Error = Error<E>;
     fn read_register(&mut self, register: u8) -> Result<u8, Self::Error> {
         let mut data = [register | 0x80, 0, 0]; // Add read bit and 1 dummy byte

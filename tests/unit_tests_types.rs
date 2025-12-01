@@ -28,13 +28,13 @@ fn test_gyroscope_range_default() {
 }
 
 #[test]
-fn test_accelerometer_default(){
+fn test_accelerometer_default() {
     println!("{:x?}", u16::from(AccelConfig::default()));
     assert_eq!(u16::from(AccelConfig::default()), 0x4028);
 }
 
 #[test]
-fn test_gyroscope_default(){
+fn test_gyroscope_default() {
     println!("{:x?}", u16::from(GyroConfig::default()));
     assert_eq!(u16::from(GyroConfig::default()), 0x4048);
 }

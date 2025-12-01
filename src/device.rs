@@ -1,7 +1,11 @@
 use crate::{
-    interface::{I2cInterface, ReadData, SpiInterface, WriteData}, 
-    types::{get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch, Sensor3DData, Sensor3DDataScaled, SensorType},
-    AccelConfig, Bmi323, Error, FifoConfig, GyroConfig,IOInterruptConfig, InterruptMapConfig, Register
+    interface::{I2cInterface, ReadData, SpiInterface, WriteData},
+    types::{
+        get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch,
+        Sensor3DData, Sensor3DDataScaled, SensorType,
+    },
+    AccelConfig, Bmi323, Error, FifoConfig, GyroConfig, IOInterruptConfig, InterruptMapConfig,
+    Register,
 };
 use embedded_hal::delay::DelayNs;
 
@@ -21,7 +25,7 @@ where
             delay,
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
-            fifo_config : Default::default(),
+            fifo_config: Default::default(),
         }
     }
 }
@@ -42,7 +46,7 @@ where
             delay,
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
-            fifo_config : Default::default(),
+            fifo_config: Default::default(),
         }
     }
 }
@@ -110,7 +114,10 @@ where
     /// # Arguments
     ///
     /// * `config` - The interruptMap configuration
-    pub fn set_interrupt_mapping_config(&mut self, config: InterruptMapConfig) ->Result<(), Error<E>>{
+    pub fn set_interrupt_mapping_config(
+        &mut self,
+        config: InterruptMapConfig,
+    ) -> Result<(), Error<E>> {
         self.write_register_16bit(Register::INT_MAP1, config.map1())?;
         self.write_register_16bit(Register::INT_MAP2, config.map2())
     }
@@ -120,7 +127,7 @@ where
     /// # Arguments
     ///
     /// * `config` - The IOinterrupt configuration
-    pub fn set_io_interrupt_config(&mut self, config: IOInterruptConfig) ->Result<(), Error<E>>{
+    pub fn set_io_interrupt_config(&mut self, config: IOInterruptConfig) -> Result<(), Error<E>> {
         self.write_register_16bit(Register::INT_CTRL, u16::from(config))
     }
 
@@ -129,7 +136,10 @@ where
     /// # Arguments
     ///
     /// * `config` - The interrupt latching configuration
-    pub fn set_interrupt_lachting_config(&mut self, config: InterruptLatch) ->Result<(), Error<E>>{
+    pub fn set_interrupt_lachting_config(
+        &mut self,
+        config: InterruptLatch,
+    ) -> Result<(), Error<E>> {
         self.write_register_16bit(Register::INT_CTRL, config as u16)
     }
 
@@ -143,8 +153,8 @@ where
 
     fn read_sensor_data(&mut self, sensor_type: SensorType) -> Result<Sensor3DData, Error<E>> {
         let (base_reg, data_size) = match sensor_type {
-            SensorType::Accelerometer => (Register::ACC_DATA_X, 21),
-            SensorType::Gyroscope => (Register::GYR_DATA_X, 15),
+            SensorType::Accelerometer => (Register::ACC_DATA_X, 1 + 6),
+            SensorType::Gyroscope => (Register::GYR_DATA_X, 1 + 6),
         };
 
         let mut data = [0u8; 21]; // Use the larger size
@@ -193,8 +203,8 @@ where
         self.iface.read_data(data)
     }
 
-    fn wait_for_data_ready(&mut self, sensor_type: SensorType) -> Result<(), Error<E>> {
-        const MAX_RETRIES: u8 = 100;
+    pub fn wait_for_data_ready(&mut self, sensor_type: SensorType) -> Result<(), Error<E>> {
+        const MAX_RETRIES: u16 = 1200;
         let mut retries = 0;
 
         while !self.is_data_ready(sensor_type)? {
@@ -215,67 +225,88 @@ where
             SensorType::Gyroscope => Ok((status & 0b0100_0000) != 0),     // Check bit 6 (drdy_gyr)
         }
     }
-    
+
     /// Read the Timestamp from the device
-    pub fn read_sensor_timestamp(&mut self) -> Result<u32, Error<E>>{
-        let mut data =[Register::SENSOR_TIME_0, 0u8, 0u8, 0u8, 0u8];
+    pub fn read_sensor_timestamp(&mut self) -> Result<u32, Error<E>> {
+        let mut data = [Register::SENSOR_TIME_0, 0u8, 0u8, 0u8, 0u8];
         self.read_data(&mut data)?;
         Ok(u32::from_le_bytes([data[1], data[2], data[3], data[4]]))
     }
 
-    pub fn set_fifo_config(&mut self, config: &FifoConfig)->Result<(), Error<E>>{
-        if *config == self.fifo_config { return Ok(())}
+    pub fn set_fifo_config(&mut self, config: &FifoConfig) -> Result<(), Error<E>> {
+        if *config == self.fifo_config {
+            return Ok(());
+        }
         self.write_register_16bit(Register::FIFO_CONF, config.to_register_value())?;
         if let Some(watermark) = config.watermark_level {
             // convert number of messages to number of 16 bit words while keeping to max value
-            let watermark = (watermark * (config.fifo_message_len()/2) as u16).min(0x3FF);
+            let watermark = (watermark * (config.fifo_message_len()) as u16).min(0x3FF);
             self.write_register_16bit(Register::FIFO_WATERMARK, watermark)?;
         }
         self.fifo_config = *config;
         Ok(())
     }
 
-    pub fn flush_fifo(&mut self) ->Result<(), Error<E>>{
+    pub fn flush_fifo(&mut self) -> Result<(), Error<E>> {
         self.write_register_16bit(Register::FIFO_CTRL, 0x01)
     }
 
-
-    fn get_fifo_fill_state(&mut self) -> Result<u16, Error<E>>{
-        let mut data = [Register::FIFO_FILL_LEVEL,0,0];
+    ///reads the number of words in the fifo
+    pub fn get_fifo_fill_state(&mut self) -> Result<u16, Error<E>> {
+        let mut data = [Register::FIFO_FILL_LEVEL, 0, 0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
     }
 
-    pub fn read_fifo_entry(&mut self)->Result<FifoData, Error<E>>{
-        const FIFO_MESSAGE_LEN_MAX : usize = 22;
+    pub fn get_fifo_watermark_level(&mut self) -> Result<u16, Error<E>>{
+        let mut data = [Register::FIFO_WATERMARK, 0, 0];
+        let res = self.read_data(&mut data)?;
+        Ok(u16::from_le_bytes([res[0], res[1]]))
+    }
+
+    pub fn read_fifo_entry(&mut self) -> Result<FifoData, Error<E>> {
+        const FIFO_MESSAGE_LEN_MAX: usize = 22;
         let message_len = self.fifo_config.fifo_message_len();
-        if message_len > self.get_fifo_fill_state()? as usize{
+        if message_len > self.get_fifo_fill_state()? as usize {
             return Err(Error::FifoEmpty);
         }
-        let mut buffer = [0u8; FIFO_MESSAGE_LEN_MAX+1];
+        let mut buffer = [0u8; FIFO_MESSAGE_LEN_MAX + 1];
         buffer[0] = Register::FIFO_DATA;
-        let fifo_data = self.read_data(&mut buffer[0..(message_len+1)])?;
+        let fifo_data = self.read_data(&mut buffer[..(message_len * 2)+1])?;
         let mut index = 0;
         let mut ret = FifoData::default();
-        if self.fifo_config.accel_enabled{
-            ret.accel = Some(get_sensor3d_data(&fifo_data[index..]).to_mps2(self.accel_range.to_g()));
-            index+=6;
+        if self.fifo_config.accel_enabled {
+            let sensor_data = get_sensor3d_data(&fifo_data[index..]);
+            // fill data for invalid data
+            if sensor_data.x != 0x7f01 {
+                ret.accel = Some(sensor_data.to_mps2(self.accel_range.to_g()));
+            }
+            index += 6;
         }
-        if self.fifo_config.gyro_enabled{
-            ret.gyro = Some(get_sensor3d_data(&fifo_data[index..]).to_mps2(self.accel_range.to_g()));
-            index+=6;
+        if self.fifo_config.gyro_enabled {
+            let sensor_data = get_sensor3d_data(&fifo_data[index..]);
+            if sensor_data.x != 0x7f02 {
+                ret.gyro =
+                    Some(get_sensor3d_data(&fifo_data[index..]).to_mps2(self.accel_range.to_g()));
+            }
+            index += 6;
         }
-        if self.fifo_config.temp_enabled{
-            ret.temp = Some(u16::from_le_bytes([fifo_data[index], fifo_data[index+1]]));
-            index+=2
+        if self.fifo_config.temp_enabled {
+            ret.temp = Some(u16::from_le_bytes([fifo_data[index], fifo_data[index + 1]]));
+            index += 2
         }
-        if self.fifo_config.timestamp_enabled{
-            ret.timestamp = Some(u32::from_le_bytes(
-                [fifo_data[index], fifo_data[index+1],
-                fifo_data[index+2], fifo_data[index+3]]));
+        if self.fifo_config.timestamp_enabled {
+            ret.timestamp = Some(u16::from_le_bytes([fifo_data[index], fifo_data[index + 1]]));
         }
         Ok(ret)
     }
+
+    pub fn read_int_status(&mut self)-> Result<u16, Error<E>>{
+        let mut data = [Register::INT_STATUS_INT1, 0, 0];
+        let res = self.read_data(&mut data)?;
+        Ok(u16::from_le_bytes([res[0], res[1]]))
+    }
+
 }
 
 #[cfg(test)]

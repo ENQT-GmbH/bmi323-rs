@@ -6,31 +6,39 @@ use embedded_hal_mock::eh1::delay::NoopDelay as MockDelay;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
 
 #[test]
-fn test_conversion(){
-     let accel_config = AccelConfig::builder()
+fn test_conversion() {
+    let accel_config = AccelConfig::builder()
         .odr(OutputDataRate::Odr100hz)
         .range(AccelerometerRange::G16)
         .bw(Bandwidth::OdrQuarter) // ODR/4
         .avg_num(AverageNum::Avg64)
         .mode(AccelerometerPowerMode::Normal)
         .build();
-    assert_eq!(accel_config, AccelConfig::from(u16::from(accel_config.clone())));
+    assert_eq!(
+        accel_config,
+        AccelConfig::from(u16::from(accel_config.clone()))
+    );
 
     let gyro_config = GyroConfig::builder()
         .odr(OutputDataRate::Odr100hz)
         .range(GyroscopeRange::DPS2000)
-        .bw(Bandwidth::OdrQuarter) 
+        .bw(Bandwidth::OdrQuarter)
         .avg_num(AverageNum::Avg64)
         .mode(GyroscopePowerMode::Normal)
         .build();
-    assert_eq!(gyro_config, GyroConfig::from(u16::from(gyro_config.clone())));
+    assert_eq!(
+        gyro_config,
+        GyroConfig::from(u16::from(gyro_config.clone()))
+    );
 }
 
+//I2C has two dummy bytes at the start of read
 #[test]
 fn test_bmi323_init() {
     let expectations = [
-        I2cTransaction::write(0x68, vec![0x7E, 0xAF, 0xDE]),
-        I2cTransaction::write_read(0x68, vec![0x00], vec![0x43]),
+        I2cTransaction::write(0x68, vec![0x7E, 0xAF, 0xDE]), //soft reset
+        I2cTransaction::write_read(0x68, vec![0x01], vec![0x00, 0x00, 0x00]), //state after reset
+        I2cTransaction::write_read(0x68, vec![0x00], vec![0x00, 0x00, 0x43]), //chip ID
     ];
 
     let mut i2c = I2cMock::new(&expectations);
@@ -46,7 +54,9 @@ fn test_bmi323_init() {
 fn test_bmi323_set_sensor_config() {
     let expectations = [
         I2cTransaction::write(0x68, vec![0x20, 0xB8, 0x46]), // Accelerometer config
+        I2cTransaction::write_read(0x68, vec![0x02], vec![0x00, 0x00, 0x80]), //check for data ready
         I2cTransaction::write(0x68, vec![0x21, 0x48, 0x46]), // Gyroscope config
+        I2cTransaction::write_read(0x68, vec![0x02], vec![0x00, 0x00, 0x40]), //check for data ready
     ];
 
     let mut i2c = I2cMock::new(&expectations);
@@ -80,7 +90,7 @@ fn test_bmi323_read_sensor_data() {
     let expectations = [I2cTransaction::write_read(
         0x68,
         vec![0x03],
-        vec![0, 0, 0, 0, 0, 0],
+        vec![0x00, 0x00, 0, 0, 0, 0, 0, 0],
     )];
 
     let mut i2c = I2cMock::new(&expectations);
