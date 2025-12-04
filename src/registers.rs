@@ -39,9 +39,9 @@ impl Register {
     pub const INT_MAP1: u8 = 0x3A;
     /// Interrupt Map 2 register address
     pub const INT_MAP2: u8 = 0x3B;
-    pub const INT_STATUS_INT1 : u8 = 0x0D;
-    pub const INT_STATUS_INT2 : u8 = 0x0E;
-    pub const INT_STATUS_INT_IBI : u8 = 0x0F;
+    pub const INT_STATUS_INT1: u8 = 0x0D;
+    pub const INT_STATUS_INT2: u8 = 0x0E;
+    pub const INT_STATUS_INT_IBI: u8 = 0x0F;
     /// Expected chip ID for BMI323
     pub const BMI323_CHIP_ID: u8 = 0x43;
     /// Soft reset command value

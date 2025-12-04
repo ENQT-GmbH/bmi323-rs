@@ -1,10 +1,10 @@
 use core::fmt::Debug;
 
+#[cfg(feature = "defmt")]
+use defmt::Format;
 use num_derive::FromPrimitive;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "defmt")]
-use defmt::Format;
 
 /// Possible errors that can occur when interacting with the BMI323
 #[cfg_attr(feature = "defmt", derive(Format))]

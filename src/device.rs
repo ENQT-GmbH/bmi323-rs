@@ -258,7 +258,7 @@ where
         Ok(u16::from_le_bytes([res[0], res[1]]))
     }
 
-    pub fn get_fifo_watermark_level(&mut self) -> Result<u16, Error<E>>{
+    pub fn get_fifo_watermark_level(&mut self) -> Result<u16, Error<E>> {
         let mut data = [Register::FIFO_WATERMARK, 0, 0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
@@ -272,7 +272,7 @@ where
         }
         let mut buffer = [0u8; FIFO_MESSAGE_LEN_MAX + 1];
         buffer[0] = Register::FIFO_DATA;
-        let fifo_data = self.read_data(&mut buffer[..(message_len * 2)+1])?;
+        let fifo_data = self.read_data(&mut buffer[..(message_len * 2) + 1])?;
         let mut index = 0;
         let mut ret = FifoData::default();
         if self.fifo_config.accel_enabled {
@@ -301,12 +301,11 @@ where
         Ok(ret)
     }
 
-    pub fn read_int_status(&mut self)-> Result<u16, Error<E>>{
+    pub fn read_int_status(&mut self) -> Result<u16, Error<E>> {
         let mut data = [Register::INT_STATUS_INT1, 0, 0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
     }
-
 }
 
 #[cfg(test)]

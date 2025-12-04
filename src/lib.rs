@@ -12,15 +12,15 @@ mod interface;
 mod registers;
 pub use registers::Register;
 mod types;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 #[cfg(feature = "defmt")]
 use defmt::Format;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, FifoConfig, FifoData,
     GyroscopePowerMode, GyroscopeRange, InterruptEnable, InterruptLatch, InterruptLevel,
-    InterruptMapping, InterruptOd, OutputDataRate, Sensor3DData, Sensor3DDataScaled, SensorType
+    InterruptMapping, InterruptOd, OutputDataRate, Sensor3DData, Sensor3DDataScaled, SensorType,
 };
 mod sensor_data;
 pub use interface::{I2cInterface, SpiInterface};
