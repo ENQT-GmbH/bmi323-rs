@@ -1,11 +1,7 @@
 use crate::{
-    interface::{I2cInterface, ReadData, SpiInterface, WriteData},
-    types::{
-        get_sensor3d_data, AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch,
-        Sensor3DData, Sensor3DDataScaled, SensorType,
-    },
-    AccelConfig, Bmi323, Error, FifoConfig, GyroConfig, IOInterruptConfig, InterruptMapConfig,
-    Register,
+    AccelConfig, AccelerometerPowerMode, Bmi323, Error, FifoConfig, GyroConfig, GyroscopePowerMode, IOInterruptConfig, InterruptMapConfig, InterruptSource, Register, interface::{I2cInterface, ReadData, SpiInterface, WriteData}, types::{
+        AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch, InterruptPin, Sensor3DData, Sensor3DDataScaled, SensorType, get_sensor3d_data
+    }
 };
 use embedded_hal::delay::DelayNs;
 
@@ -26,6 +22,7 @@ where
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
             fifo_config: Default::default(),
+            fifo_message_len :0,
         }
     }
 }
@@ -47,6 +44,7 @@ where
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
             fifo_config: Default::default(),
+            fifo_message_len :0,
         }
     }
 }
@@ -87,7 +85,9 @@ where
         self.accel_range = config.range;
 
         // Wait for accelerometer data to be ready
-        self.wait_for_data_ready(SensorType::Accelerometer)?;
+        if config.mode != AccelerometerPowerMode::Disable{
+            self.wait_for_data_ready(SensorType::Accelerometer)?;
+        }
 
         Ok(())
     }
@@ -103,8 +103,9 @@ where
         self.gyro_range = config.range;
 
         // Wait for gyroscope data to be ready
-        self.wait_for_data_ready(SensorType::Gyroscope)?;
-
+        if config.mode != GyroscopePowerMode::Disable{
+            self.wait_for_data_ready(SensorType::Gyroscope)?;
+        }
         Ok(())
     }
 
@@ -233,6 +234,7 @@ where
         Ok(u32::from_le_bytes([data[1], data[2], data[3], data[4]]))
     }
 
+    ///configures the FIFO
     pub fn set_fifo_config(&mut self, config: &FifoConfig) -> Result<(), Error<E>> {
         if *config == self.fifo_config {
             return Ok(());
@@ -244,35 +246,37 @@ where
             self.write_register_16bit(Register::FIFO_WATERMARK, watermark)?;
         }
         self.fifo_config = *config;
+        self.fifo_message_len = config.fifo_message_len();
         Ok(())
     }
 
+    ///flushes the FIFO
     pub fn flush_fifo(&mut self) -> Result<(), Error<E>> {
         self.write_register_16bit(Register::FIFO_CTRL, 0x01)
     }
 
     ///reads the number of words in the fifo
-    pub fn get_fifo_fill_state(&mut self) -> Result<u16, Error<E>> {
+    fn get_fifo_fill_state(&mut self) -> Result<u16, Error<E>> {
         let mut data = [Register::FIFO_FILL_LEVEL, 0, 0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
     }
 
-    pub fn get_fifo_watermark_level(&mut self) -> Result<u16, Error<E>> {
-        let mut data = [Register::FIFO_WATERMARK, 0, 0];
-        let res = self.read_data(&mut data)?;
-        Ok(u16::from_le_bytes([res[0], res[1]]))
+    /// reads the number of entries in the FIFO
+    pub fn get_fifo_entry_count(&mut self) -> Result<u16,Error<E>>{
+        Ok(self.get_fifo_fill_state()?/self.fifo_message_len)
     }
 
+    /// reads one entry from the Fifo
     pub fn read_fifo_entry(&mut self) -> Result<FifoData, Error<E>> {
         const FIFO_MESSAGE_LEN_MAX: usize = 22;
-        let message_len = self.fifo_config.fifo_message_len();
-        if message_len > self.get_fifo_fill_state()? as usize {
+        let message_len = self.fifo_message_len;
+        if message_len > self.get_fifo_fill_state()? {
             return Err(Error::FifoEmpty);
         }
         let mut buffer = [0u8; FIFO_MESSAGE_LEN_MAX + 1];
         buffer[0] = Register::FIFO_DATA;
-        let fifo_data = self.read_data(&mut buffer[..(message_len * 2) + 1])?;
+        let fifo_data = self.read_data(&mut buffer[..(message_len as usize * 2) + 1])?;
         let mut index = 0;
         let mut ret = FifoData::default();
         if self.fifo_config.accel_enabled {
@@ -301,10 +305,28 @@ where
         Ok(ret)
     }
 
-    pub fn read_int_status(&mut self) -> Result<u16, Error<E>> {
-        let mut data = [Register::INT_STATUS_INT1, 0, 0];
+    /// reads the interrupt source for the given pin. This resets the interrupt.
+    pub fn get_int_status(&mut self, pin: InterruptPin) -> Result<InterruptSource, Error<E>> {
+        let reg = match pin {
+            InterruptPin::Int1 => Register::INT_STATUS_INT1,
+            InterruptPin::Int2 => Register::INT_STATUS_INT2,
+            InterruptPin::IC3IBI => Register::INT_STATUS_INT_IBI,
+        };
+        let mut data = [reg, 0, 0];
+        let res = self.read_data(&mut data)?;
+        Ok(InterruptSource::from(u16::from_le_bytes([res[0], res[1]])))
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn debug_read(&mut self, register:u8)->Result<u16, Error<E>>{
+        let mut data = [register,0,0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
+    }
+    #[cfg(feature = "debug")]
+    pub fn debug_write(&mut self, register:u8, value: u16)->Result<(), Error<E>>{
+        self.write_register_16bit(register, value)?;
+        Ok(())
     }
 }
 

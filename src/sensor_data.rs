@@ -1,7 +1,7 @@
 use crate::types::{Sensor3DData, Sensor3DDataScaled};
 
 /// Standard gravity in m/s^2
-pub const GRAVITY: f32 = 9.80665;
+pub const GRAVITY: f32 = 9.8;
 /// Alias for accelerometer data
 pub type AccelerometerData = Sensor3DData;
 /// Alias for gyroscope data

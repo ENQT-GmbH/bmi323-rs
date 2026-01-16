@@ -39,3 +39,4 @@ embedded-hal-mock = { version = "0.11.1", features = ["eh1"] }
 [features]
 serde = ["dep:serde"]
 defmt = ["dep:defmt"]
+debug = []

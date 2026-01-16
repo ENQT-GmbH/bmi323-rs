@@ -1,4 +1,7 @@
-use bmi323::{AccelConfig, AccelerometerRange, GyroConfig, GyroscopeRange};
+use bmi323::{
+    AccelConfig, AccelerometerRange, FifoConfig, GyroConfig, GyroscopeRange,
+    InterruptMapConfigBuilder, InterruptSource,
+};
 
 #[test]
 fn test_accelerometer_range_to_g() {
@@ -37,4 +40,47 @@ fn test_accelerometer_default() {
 fn test_gyroscope_default() {
     println!("{:x?}", u16::from(GyroConfig::default()));
     assert_eq!(u16::from(GyroConfig::default()), 0x4048);
+}
+
+#[test]
+fn test_fifo_message_len() {
+    let mut config = FifoConfig::default();
+    assert_eq!(config.fifo_message_len(), 0);
+    config.accel_enabled = true;
+    assert_eq!(config.fifo_message_len(), 3);
+    config.gyro_enabled = true;
+    assert_eq!(config.fifo_message_len(), 6);
+    config.timestamp_enabled = true;
+    assert_eq!(config.fifo_message_len(), 7);
+    config.temp_enabled = true;
+    assert_eq!(config.fifo_message_len(), 8);
+    config.stop_on_full = true;
+    assert_eq!(config.fifo_message_len(), 8);
+}
+
+#[test]
+fn test_interrupt_config_values() {
+    let mut config = InterruptMapConfigBuilder::default().build();
+    assert_eq!(config.map1(), 0u16);
+    assert_eq!(config.map2(), 0u16);
+    config = InterruptMapConfigBuilder::default()
+        .fifo_watermark(bmi323::InterruptMapping::Int1)
+        .build();
+    assert_eq!(config.map1(), 0u16);
+    assert_eq!(config.map2(), 1u16 << 12);
+    config = InterruptMapConfigBuilder::default()
+        .acc_drdy(bmi323::InterruptMapping::Int1)
+        .gyr_drdy(bmi323::InterruptMapping::Int2)
+        .build();
+    assert_eq!(config.map1(), 0u16);
+    assert_eq!(config.map2(), (2u16 << 8) | (1u16 << 10));
+}
+
+#[test]
+fn test_interrupt_source(){
+    assert_eq!(InterruptSource::from(1<<12), InterruptSource{gyr_drdy:true, ..Default::default()});
+    assert_eq!(InterruptSource::from(1<<13), InterruptSource{acc_drdy:true, ..Default::default()});
+    assert_eq!(InterruptSource::from(1<<14), InterruptSource{fifo_watermark:true, ..Default::default()});
+    assert_eq!(InterruptSource::from(1<<15), InterruptSource{fifo_full:true, ..Default::default()});
+    assert_eq!(InterruptSource::from(1<<12|1<<13), InterruptSource{gyr_drdy:true,acc_drdy:true, ..Default::default()});
 }

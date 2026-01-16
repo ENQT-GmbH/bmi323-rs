@@ -1,6 +1,6 @@
 use bmi323::{
     AccelConfig, AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Bmi323,
-    GyroConfig, GyroscopePowerMode, GyroscopeRange, OutputDataRate,
+    GyroConfig, GyroscopePowerMode, GyroscopeRange, OutputDataRate, InterruptSource
 };
 use embedded_hal_mock::eh1::delay::NoopDelay as MockDelay;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
@@ -102,5 +102,25 @@ fn test_bmi323_read_sensor_data() {
     assert_eq!(sensor_data.y, 0);
     assert_eq!(sensor_data.z, 0);
 
+    i2c.done();
+}
+#[test]
+fn test_bmi323_read_int_source() {
+    let expectations = [I2cTransaction::write_read(
+        0x68,
+        vec![0x0D],
+        vec![0x00, 0x00, 0x00, 0x30],
+    )];
+
+    let mut i2c = I2cMock::new(&expectations);
+    let delay = MockDelay::new();
+    let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, delay);
+
+    let source = bmi323.get_int_status(bmi323::InterruptPin::Int1).unwrap();
+    assert!(source.gyr_drdy);
+    assert!(source.acc_drdy);
+    assert!(!source.fifo_full);
+    assert!(!source.fifo_watermark);
+    
     i2c.done();
 }

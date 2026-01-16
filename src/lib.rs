@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 pub use types::{
     AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, FifoConfig, FifoData,
-    GyroscopePowerMode, GyroscopeRange, InterruptEnable, InterruptLatch, InterruptLevel,
+    GyroscopePowerMode, GyroscopeRange, InterruptEnable, InterruptLatch, InterruptLevel,InterruptPin,
     InterruptMapping, InterruptOd, OutputDataRate, Sensor3DData, Sensor3DDataScaled, SensorType,
 };
 mod sensor_data;
@@ -37,6 +37,7 @@ pub struct Bmi323<DI, D> {
     /// Current gyroscope range
     gyro_range: GyroscopeRange,
     fifo_config: FifoConfig,
+    fifo_message_len: u16,
 }
 
 /// Configuration for the accelerometer
@@ -271,22 +272,22 @@ impl From<GyroConfig> for u16 {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InterruptMapConfig {
-    no_motion: InterruptMapping,
-    any_motion: InterruptMapping,
-    flat: InterruptMapping,
-    orientation: InterruptMapping,
-    step_detector: InterruptMapping,
-    step_counter: InterruptMapping,
-    sig_motion: InterruptMapping,
-    tilt_out: InterruptMapping,
-    tap: InterruptMapping,
-    i3c: InterruptMapping,
-    err_status: InterruptMapping,
-    temp_drdy: InterruptMapping,
-    gyr_drdy: InterruptMapping,
-    acc_drdy: InterruptMapping,
-    fifo_watermark: InterruptMapping,
-    fifo_full: InterruptMapping,
+    pub no_motion: InterruptMapping,
+    pub any_motion: InterruptMapping,
+    pub flat: InterruptMapping,
+    pub orientation: InterruptMapping,
+    pub step_detector: InterruptMapping,
+    pub step_counter: InterruptMapping,
+    pub sig_motion: InterruptMapping,
+    pub tilt_out: InterruptMapping,
+    pub tap: InterruptMapping,
+    pub i3c: InterruptMapping,
+    pub err_status: InterruptMapping,
+    pub temp_drdy: InterruptMapping,
+    pub gyr_drdy: InterruptMapping,
+    pub acc_drdy: InterruptMapping,
+    pub fifo_watermark: InterruptMapping,
+    pub fifo_full: InterruptMapping,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -400,7 +401,7 @@ impl InterruptMapConfig {
     pub fn builder() -> InterruptMapConfigBuilder {
         InterruptMapConfigBuilder::default()
     }
-    fn map1(&self) -> u16 {
+    pub const fn map1(&self) -> u16 {
         self.no_motion as u16 & 0x03
             | (self.any_motion as u16 & 0x03) << 2
             | (self.flat as u16 & 0x03) << 4
@@ -411,7 +412,7 @@ impl InterruptMapConfig {
             | (self.tilt_out as u16 & 0x03) << 14
     }
 
-    fn map2(&self) -> u16 {
+    pub const fn map2(&self) -> u16 {
         self.tap as u16 & 0x03
             | (self.i3c as u16 & 0x03) << 2
             | (self.err_status as u16 & 0x03) << 4
@@ -504,5 +505,26 @@ impl From<IOInterruptConfig> for u16 {
             | (config.int2_lvl as u16 & 0x1) << 7
             | (config.int2_od as u16 & 0x1) << 8
             | (config.int2_en as u16 & 0x1) << 9
+    }
+}
+
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct InterruptSource {
+    pub gyr_drdy: bool,
+    pub acc_drdy: bool,
+    pub fifo_watermark: bool,
+    pub fifo_full: bool,
+}
+
+impl From<u16> for InterruptSource {
+    fn from(value: u16) -> Self {
+        Self {
+            gyr_drdy: (value & 1 << 12) != 0,
+            acc_drdy: (value & 1 << 13) != 0,
+            fifo_watermark: (value & 1 << 14) != 0,
+            fifo_full: (value & 1 << 15) != 0,
+        }
     }
 }

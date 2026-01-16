@@ -68,7 +68,7 @@ impl AccelerometerRange {
 pub enum GyroscopePowerMode {
     /// Gyroscope disabled
     Disable = 0x00,
-    /// Supend mode
+    /// Suspend mode
     Suspend = 0x01,
     /// Low power mode
     LowPower = 0x03,
@@ -167,6 +167,7 @@ pub struct FifoConfig {
 }
 
 impl FifoConfig {
+    /// converts to the value as to write into the register
     pub fn to_register_value(&self) -> u16 {
         self.stop_on_full as u16
             | (self.timestamp_enabled as u16) << 8
@@ -174,7 +175,9 @@ impl FifoConfig {
             | (self.gyro_enabled as u16) << 10
             | (self.temp_enabled as u16) << 11
     }
-    pub fn fifo_message_len(&self) -> usize {
+
+    /// length of each fifo entry in 16 bit words
+    pub const fn fifo_message_len(&self) -> u16 {
         let mut len = 0;
         if self.accel_enabled {
             len += 3;
@@ -284,6 +287,17 @@ pub enum InterruptMapping {
     Int2 = 0x2,
     ///Interrupt is mapped to I3C IBI pin
     IC3IBI = 0x3,
+}
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+pub enum InterruptPin {
+    ///Interrupt is mapped to Int1 pin
+    Int1 = 0x00,
+    ///Interrupt is mapped to Int2 pin
+    Int2 = 0x01,
+    ///Interrupt is mapped to I3C IBI pin
+    IC3IBI = 0x02,
 }
 
 /// Level of interrupt pin when driven
