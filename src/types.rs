@@ -1,6 +1,14 @@
 use core::fmt::Debug;
 
+#[cfg(feature = "defmt")]
+use defmt::Format;
+use num_derive::FromPrimitive;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Possible errors that can occur when interacting with the BMI323
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug)]
 pub enum Error<E> {
     /// Communication error
@@ -11,25 +19,33 @@ pub enum Error<E> {
     InvalidConfig,
     /// Timeout error
     Timeout,
+    ///FIFO empty
+    FifoEmpty,
 }
 
 /// Accelerometer power modes
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerPowerMode {
     /// Accelerometer disabled
     Disable = 0x00,
     /// Low power mode
     LowPower = 0x03,
     /// Normal power mode
+    #[default]
     Normal = 0x04,
     /// High performance mode
     HighPerf = 0x07,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AccelerometerRange {
     G2 = 0,
     G4 = 1,
+    #[default]
     G8 = 2,
     G16 = 3,
 }
@@ -45,29 +61,28 @@ impl AccelerometerRange {
     }
 }
 
-impl Default for AccelerometerRange {
-    fn default() -> Self {
-        AccelerometerRange::G8
-    }
-}
-
 /// Gyroscope power mode
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopePowerMode {
     /// Gyroscope disabled
     Disable = 0x00,
-    /// Supend mode
+    /// Suspend mode
     Suspend = 0x01,
     /// Low power mode
     LowPower = 0x03,
     /// Normal power mode
+    #[default]
     Normal = 0x04,
-    /// High perfomance mode
+    /// High performance mode
     HighPerf = 0x07,
 }
 
 /// Gyroscope measurement ranges
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum GyroscopeRange {
     /// ±125 degrees per second
     DPS125 = 0,
@@ -78,6 +93,7 @@ pub enum GyroscopeRange {
     /// ±1000 degrees per second
     DPS1000 = 3,
     /// ±2000 degrees per second
+    #[default]
     DPS2000 = 4,
 }
 
@@ -93,13 +109,9 @@ impl GyroscopeRange {
     }
 }
 
-impl Default for GyroscopeRange {
-    fn default() -> Self {
-        GyroscopeRange::DPS2000
-    }
-}
-
 /// 3D sensor data (raw values)
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Sensor3DData {
     /// X-axis value
@@ -110,8 +122,18 @@ pub struct Sensor3DData {
     pub z: i16,
 }
 
+pub fn get_sensor3d_data(data: &[u8]) -> Sensor3DData {
+    Sensor3DData {
+        x: i16::from_le_bytes([data[0], data[1]]),
+        y: i16::from_le_bytes([data[2], data[3]]),
+        z: i16::from_le_bytes([data[4], data[5]]),
+    }
+}
+
 /// Scaled 3D sensor data
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Sensor3DDataScaled {
     /// X-axis scaled value
     pub x: f32,
@@ -121,8 +143,62 @@ pub struct Sensor3DDataScaled {
     pub z: f32,
 }
 
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct FifoData {
+    pub accel: Option<Sensor3DDataScaled>,
+    pub gyro: Option<Sensor3DDataScaled>,
+    pub temp: Option<u16>,
+    pub timestamp: Option<u16>,
+}
+
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct FifoConfig {
+    pub stop_on_full: bool,
+    pub accel_enabled: bool,
+    pub gyro_enabled: bool,
+    pub temp_enabled: bool,
+    pub timestamp_enabled: bool,
+    ///watermark level in messages
+    pub watermark_level: Option<u16>,
+}
+
+impl FifoConfig {
+    /// converts to the value as to write into the register
+    pub fn to_register_value(&self) -> u16 {
+        self.stop_on_full as u16
+            | (self.timestamp_enabled as u16) << 8
+            | (self.accel_enabled as u16) << 9
+            | (self.gyro_enabled as u16) << 10
+            | (self.temp_enabled as u16) << 11
+    }
+
+    /// length of each fifo entry in 16 bit words
+    pub const fn fifo_message_len(&self) -> u16 {
+        let mut len = 0;
+        if self.accel_enabled {
+            len += 3;
+        }
+        if self.gyro_enabled {
+            len += 3;
+        }
+        if self.temp_enabled {
+            len += 1;
+        }
+        if self.timestamp_enabled {
+            len += 1;
+        }
+        len
+    }
+}
+
 /// Output data rates for sensors
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum OutputDataRate {
     /// 0.78 Hz
     Odr0_78hz = 0x01,
@@ -139,6 +215,7 @@ pub enum OutputDataRate {
     /// 50 Hz
     Odr50hz = 0x07,
     /// 100 Hz
+    #[default]
     Odr100hz = 0x08,
     /// 200 Hz
     Odr200hz = 0x09,
@@ -155,9 +232,12 @@ pub enum OutputDataRate {
 }
 
 /// Number of samples to average
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum AverageNum {
     /// No averaging
+    #[default]
     Avg1 = 0x00,
     /// Average 2 samples
     Avg2 = 0x01,
@@ -174,16 +254,96 @@ pub enum AverageNum {
 }
 
 /// Sensor bandwidth settings
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum Bandwidth {
     /// Half of the output data rate
+    #[default]
     OdrHalf = 0,
     /// Quarter of the output data rate
     OdrQuarter = 1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
 pub enum SensorType {
     Accelerometer,
     Gyroscope,
+}
+
+/// Mapping of interrupt to specific pin
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
+pub enum InterruptMapping {
+    ///Interrupt is not mapped to any Pin
+    #[default]
+    Disabled = 0x0,
+    ///Interrupt is mapped to Int1 pin
+    Int1 = 0x1,
+    ///Interrupt is mapped to Int2 pin
+    Int2 = 0x2,
+    ///Interrupt is mapped to I3C IBI pin
+    IC3IBI = 0x3,
+}
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, FromPrimitive)]
+pub enum InterruptPin {
+    ///Interrupt is mapped to Int1 pin
+    Int1 = 0x00,
+    ///Interrupt is mapped to Int2 pin
+    Int2 = 0x01,
+    ///Interrupt is mapped to I3C IBI pin
+    IC3IBI = 0x02,
+}
+
+/// Level of interrupt pin when driven
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
+pub enum InterruptLevel {
+    /// Low when active
+    #[default]
+    ActiveLow = 0x0,
+    /// High when active
+    ActiveHigh = 0x1,
+}
+
+///Type of output
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
+pub enum InterruptOd {
+    /// Push pull
+    #[default]
+    PushPull = 0x0,
+    /// Open drain
+    OpenDrain = 0x1,
+}
+
+/// Enable interrupt pin
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
+pub enum InterruptEnable {
+    ///Disabled
+    #[default]
+    Disabled = 0x0,
+    ///Enabled
+    Enabled = 0x1,
+}
+
+/// Latching type of Interrupt
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Default, FromPrimitive)]
+pub enum InterruptLatch {
+    /// Non Latched
+    #[default]
+    NonLatched = 0x0,
+    /// Permanent Latched
+    PermanentLatched = 0x1,
 }
