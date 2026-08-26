@@ -166,6 +166,131 @@ pub struct FifoConfig {
     pub watermark_level: Option<u16>,
 }
 
+/// Axes used by an any-motion or no-motion feature.
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MotionAxes {
+    /// Enable detection on the X axis.
+    pub x: bool,
+    /// Enable detection on the Y axis.
+    pub y: bool,
+    /// Enable detection on the Z axis.
+    pub z: bool,
+}
+
+impl MotionAxes {
+    /// Select all three axes.
+    pub const fn all() -> Self {
+        Self {
+            x: true,
+            y: true,
+            z: true,
+        }
+    }
+
+    /// Select no axes, disabling the feature output.
+    pub const fn none() -> Self {
+        Self {
+            x: false,
+            y: false,
+            z: false,
+        }
+    }
+
+    pub(crate) const fn bits(&self) -> u16 {
+        self.x as u16 | (self.y as u16) << 1 | (self.z as u16) << 2
+    }
+}
+
+impl Default for MotionAxes {
+    fn default() -> Self {
+        Self::all()
+    }
+}
+
+/// Configuration for the feature engine's any-motion detector.
+///
+/// Threshold and hysteresis use 1.953 mg/LSB. Duration and wait time use
+/// 20 ms/LSB. Values outside the documented bit widths are rejected.
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AnyMotionConfig {
+    /// Motion slope threshold (0..=4095).
+    pub threshold: u16,
+    /// Update the acceleration reference continuously.
+    pub reference_update: bool,
+    /// Motion slope hysteresis (0..=1023).
+    pub hysteresis: u16,
+    /// Consecutive 20 ms samples required for assertion (0..=8191).
+    pub duration: u16,
+    /// 20 ms samples before clearing the event (0..=7).
+    pub wait_time: u8,
+}
+
+impl Default for AnyMotionConfig {
+    fn default() -> Self {
+        Self {
+            threshold: 8,
+            reference_update: true,
+            hysteresis: 5,
+            duration: 250,
+            wait_time: 5,
+        }
+    }
+}
+
+/// Configuration for the feature engine's no-motion detector.
+///
+/// Threshold and hysteresis use 1.953 mg/LSB. Duration and wait time use
+/// 20 ms/LSB. Values outside the documented bit widths are rejected.
+#[cfg_attr(feature = "defmt", derive(Format))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct NoMotionConfig {
+    /// No-motion slope threshold (0..=4095).
+    pub threshold: u16,
+    /// Update the acceleration reference continuously.
+    pub reference_update: bool,
+    /// No-motion slope hysteresis (0..=1023).
+    pub hysteresis: u16,
+    /// Consecutive 20 ms samples required for assertion (0..=8191).
+    pub duration: u16,
+    /// 20 ms samples before clearing the event (0..=7).
+    pub wait_time: u8,
+}
+
+impl Default for NoMotionConfig {
+    fn default() -> Self {
+        Self {
+            threshold: 30,
+            reference_update: true,
+            hysteresis: 3,
+            duration: 250,
+            wait_time: 5,
+        }
+    }
+}
+
+impl NoMotionConfig {
+    pub(crate) fn config_words(&self) -> Option<[u16; 3]> {
+        if self.threshold > 0x0fff
+            || self.hysteresis > 0x03ff
+            || self.duration > 0x1fff
+            || self.wait_time > 7
+        {
+            return None;
+        }
+
+        Some([
+            self.threshold | (self.reference_update as u16) << 12,
+            self.hysteresis,
+            self.duration | (self.wait_time as u16) << 13,
+        ])
+    }
+}
+
 impl FifoConfig {
     /// converts to the value as to write into the register
     pub fn to_register_value(&self) -> u16 {

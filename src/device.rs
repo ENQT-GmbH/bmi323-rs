@@ -1,7 +1,10 @@
 use crate::{
-    AccelConfig, AccelerometerPowerMode, Bmi323, Error, FifoConfig, GyroConfig, GyroscopePowerMode, IOInterruptConfig, InterruptMapConfig, InterruptSource, Register, interface::{I2cInterface, ReadData, SpiInterface, WriteData}, types::{
-        AccelerometerRange, FifoData, GyroscopeRange, InterruptLatch, InterruptPin, Sensor3DData, Sensor3DDataScaled, SensorType, get_sensor3d_data
-    }
+    interface::{I2cInterface, ReadData, SpiInterface, WriteData},
+    types::get_sensor3d_data,
+    AccelConfig, AccelerometerPowerMode, AccelerometerRange, AnyMotionConfig, Bmi323, Error,
+    FifoConfig, FifoData, GyroConfig, GyroscopePowerMode, GyroscopeRange, IOInterruptConfig,
+    InterruptLatch, InterruptMapConfig, InterruptPin, InterruptSource, MotionAxes, NoMotionConfig,
+    Register, Sensor3DData, Sensor3DDataScaled, SensorType,
 };
 use embedded_hal::delay::DelayNs;
 
@@ -22,7 +25,7 @@ where
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
             fifo_config: Default::default(),
-            fifo_message_len :0,
+            fifo_message_len: 0,
         }
     }
 }
@@ -44,7 +47,7 @@ where
             accel_range: AccelerometerRange::default(),
             gyro_range: GyroscopeRange::default(),
             fifo_config: Default::default(),
-            fifo_message_len :0,
+            fifo_message_len: 0,
         }
     }
 }
@@ -70,8 +73,118 @@ where
         if result != Register::BMI323_CHIP_ID {
             return Err(Error::InvalidDevice);
         }
-
         Ok(())
+    }
+
+    /// Enable the feature engine.
+    ///
+    /// This must be called after a reset. Once the engine is disabled, the
+    /// device must be reset before it can be enabled again.
+    pub fn enable_feature_engine(&mut self) -> Result<(), Error<E>> {
+        self.write_register_16bit(Register::FEATURE_IO2, Register::FEATURE_ENGINE_INIT)?;
+        self.write_register_16bit(Register::FEATURE_IO_STATUS, Register::FEATURE_IO_SYNC)?;
+        self.write_register_16bit(Register::FEATURE_CTRL, Register::FEATURE_ENGINE_ENABLED)?;
+
+        for _ in 0..10 {
+            self.delay.delay_ms(10);
+            if self.read_register_16bit(Register::FEATURE_IO1)? & 1 != 0 {
+                return Ok(());
+            }
+        }
+
+        Err(Error::Timeout)
+    }
+
+    /// Disable the feature engine.
+    ///
+    /// A soft reset or power cycle is required before the feature engine can
+    /// be enabled again.
+    pub fn disable_feature_engine(&mut self) -> Result<(), Error<E>> {
+        self.write_register_16bit(Register::FEATURE_CTRL, Register::FEATURE_ENGINE_DISABLED)
+    }
+
+    /// Configure and enable any-motion detection on the selected axes.
+    ///
+    /// The accelerometer must already be configured and enabled.
+    pub fn configure_any_motion(
+        &mut self,
+        config: AnyMotionConfig,
+        axes: MotionAxes,
+    ) -> Result<(), Error<E>> {
+        self.set_any_motion_config(config)?;
+        self.set_any_motion_axes(axes)
+    }
+
+    /// Configure and enable no-motion detection on the selected axes.
+    ///
+    /// The accelerometer must already be configured and enabled.
+    pub fn configure_no_motion(
+        &mut self,
+        config: NoMotionConfig,
+        axes: MotionAxes,
+    ) -> Result<(), Error<E>> {
+        self.set_no_motion_config(config)?;
+        self.set_no_motion_axes(axes)
+    }
+
+    /// Set the feature engine's any-motion parameters.
+    pub fn set_any_motion_config(&mut self, config: AnyMotionConfig) -> Result<(), Error<E>> {
+        let words = NoMotionConfig {
+            threshold: config.threshold,
+            reference_update: config.reference_update,
+            hysteresis: config.hysteresis,
+            duration: config.duration,
+            wait_time: config.wait_time,
+        }
+        .config_words()
+        .ok_or(Error::InvalidConfig)?;
+        self.write_feature_config(Register::ANY_MOTION_CONFIG_ADDR, words)
+    }
+
+    /// Set the feature engine's no-motion parameters.
+    pub fn set_no_motion_config(&mut self, config: NoMotionConfig) -> Result<(), Error<E>> {
+        let words = config.config_words().ok_or(Error::InvalidConfig)?;
+        self.write_feature_config(Register::NO_MOTION_CONFIG_ADDR, words)
+    }
+
+    /// Enable any-motion detection on selected axes. Pass [`MotionAxes::none`]
+    /// to disable it.
+    pub fn set_any_motion_axes(&mut self, axes: MotionAxes) -> Result<(), Error<E>> {
+        self.update_motion_axes(axes, 3)
+    }
+
+    /// Enable no-motion detection on selected axes. Pass [`MotionAxes::none`]
+    /// to disable it.
+    pub fn set_no_motion_axes(&mut self, axes: MotionAxes) -> Result<(), Error<E>> {
+        self.update_motion_axes(axes, 0)
+    }
+
+    fn write_feature_config(&mut self, address: u16, words: [u16; 3]) -> Result<(), Error<E>> {
+        self.write_register_16bit(Register::FEATURE_DATA_ADDR, address)?;
+
+        let first = words[0].to_le_bytes();
+        let second = words[1].to_le_bytes();
+        let third = words[2].to_le_bytes();
+        self.iface.write_data(&[
+            Register::FEATURE_DATA_TX,
+            first[0],
+            first[1],
+            second[0],
+            second[1],
+            third[0],
+            third[1],
+        ])
+    }
+
+    fn update_motion_axes(&mut self, axes: MotionAxes, shift: u8) -> Result<(), Error<E>> {
+        let current = self.read_register_16bit(Register::FEATURE_IO0)?;
+        let mask = 0x07 << shift;
+        let updated = (current & !mask) | (axes.bits() << shift);
+
+        // FEATURE_IO0 must be cleared before changing an active configuration.
+        self.write_register_16bit(Register::FEATURE_IO0, 0)?;
+        self.write_register_16bit(Register::FEATURE_IO0, updated)?;
+        self.write_register_16bit(Register::FEATURE_IO_STATUS, Register::FEATURE_IO_SYNC)
     }
 
     /// Set the accelerometer configuration
@@ -85,7 +198,7 @@ where
         self.accel_range = config.range;
 
         // Wait for accelerometer data to be ready
-        if config.mode != AccelerometerPowerMode::Disable{
+        if config.mode != AccelerometerPowerMode::Disable {
             self.wait_for_data_ready(SensorType::Accelerometer)?;
         }
 
@@ -103,7 +216,7 @@ where
         self.gyro_range = config.range;
 
         // Wait for gyroscope data to be ready
-        if config.mode != GyroscopePowerMode::Disable{
+        if config.mode != GyroscopePowerMode::Disable {
             self.wait_for_data_ready(SensorType::Gyroscope)?;
         }
         Ok(())
@@ -200,6 +313,12 @@ where
         self.iface.read_register(reg)
     }
 
+    fn read_register_16bit(&mut self, reg: u8) -> Result<u16, Error<E>> {
+        let mut data = [reg, 0, 0];
+        let data = self.read_data(&mut data)?;
+        Ok(u16::from_le_bytes([data[0], data[1]]))
+    }
+
     fn read_data<'a>(&mut self, data: &'a mut [u8]) -> Result<&'a [u8], Error<E>> {
         self.iface.read_data(data)
     }
@@ -263,8 +382,8 @@ where
     }
 
     /// reads the number of entries in the FIFO
-    pub fn get_fifo_entry_count(&mut self) -> Result<u16,Error<E>>{
-        Ok(self.get_fifo_fill_state()?/self.fifo_message_len)
+    pub fn get_fifo_entry_count(&mut self) -> Result<u16, Error<E>> {
+        Ok(self.get_fifo_fill_state()? / self.fifo_message_len)
     }
 
     /// reads one entry from the Fifo
@@ -318,13 +437,13 @@ where
     }
 
     #[cfg(feature = "debug")]
-    pub fn debug_read(&mut self, register:u8)->Result<u16, Error<E>>{
-        let mut data = [register,0,0];
+    pub fn debug_read(&mut self, register: u8) -> Result<u16, Error<E>> {
+        let mut data = [register, 0, 0];
         let res = self.read_data(&mut data)?;
         Ok(u16::from_le_bytes([res[0], res[1]]))
     }
     #[cfg(feature = "debug")]
-    pub fn debug_write(&mut self, register:u8, value: u16)->Result<(), Error<E>>{
+    pub fn debug_write(&mut self, register: u8, value: u16) -> Result<(), Error<E>> {
         self.write_register_16bit(register, value)?;
         Ok(())
     }

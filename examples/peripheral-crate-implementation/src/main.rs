@@ -102,6 +102,10 @@ fn main() -> ! {
 
     bmi323.init().unwrap();
 
+    // The feature engine must be enabled after reset and before the
+    // accelerometer is configured.
+    bmi323.enable_feature_engine().unwrap();
+
     let accel_config = AccelConfig::builder()
         .odr(OutputDataRate::Odr100hz)
         .range(AccelerometerRange::G16)

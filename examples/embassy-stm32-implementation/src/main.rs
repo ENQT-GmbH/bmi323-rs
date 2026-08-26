@@ -50,6 +50,12 @@ async fn main(_spawner: Spawner) {
         Err(_) => info!("BMI323 initialized error"),
     }
 
+    // The feature engine must be enabled after reset and before the
+    // accelerometer is configured.
+    if let Err(e) = bmi323.enable_feature_engine() {
+        info!("Failed to enable feature engine: {:?}", e);
+    }
+
     let accel_config = AccelConfig::builder()
         .odr(OutputDataRate::Odr100hz)
         .range(AccelerometerRange::G16)

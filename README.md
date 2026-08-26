@@ -35,6 +35,9 @@ fn main() {
     // Initialize the device
     imu.init().unwrap();
 
+    // Enable the feature engine before configuring the accelerometer.
+    imu.enable_feature_engine().unwrap();
+
     // Configure accelerometer
     let accel_config = AccelConfig::builder()
         .odr(OutputDataRate::Odr100hz)
@@ -48,6 +51,12 @@ fn main() {
         .range(GyroscopeRange::DPS2000)
         .build();
     imu.set_gyro_config(gyro_config).unwrap();
+
+    // Configure the feature engine's any-motion detector on all axes.
+    imu.configure_any_motion(
+        bmi323::AnyMotionConfig::default(),
+        bmi323::MotionAxes::all(),
+    ).unwrap();
 
     loop {
         // Read accelerometer data

@@ -1,6 +1,7 @@
 use bmi323::{
-    AccelConfig, AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Bmi323,
-    GyroConfig, GyroscopePowerMode, GyroscopeRange, OutputDataRate, InterruptSource
+    AccelConfig, AccelerometerPowerMode, AccelerometerRange, AnyMotionConfig, AverageNum,
+    Bandwidth, Bmi323, GyroConfig, GyroscopePowerMode, GyroscopeRange, MotionAxes, NoMotionConfig,
+    OutputDataRate,
 };
 use embedded_hal_mock::eh1::delay::NoopDelay as MockDelay;
 use embedded_hal_mock::eh1::i2c::{Mock as I2cMock, Transaction as I2cTransaction};
@@ -46,6 +47,77 @@ fn test_bmi323_init() {
     let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, delay);
 
     bmi323.init().unwrap();
+
+    i2c.done();
+}
+
+#[test]
+fn test_disable_feature_engine() {
+    let expectations = [I2cTransaction::write(0x68, vec![0x40, 0x00, 0x00])];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, MockDelay::new());
+
+    bmi323.disable_feature_engine().unwrap();
+
+    i2c.done();
+}
+
+#[test]
+fn test_configure_any_motion() {
+    let expectations = [
+        I2cTransaction::write(0x68, vec![0x41, 0x05, 0x00]),
+        I2cTransaction::write(0x68, vec![0x42, 0x08, 0x10, 0x05, 0x00, 0xFA, 0xA0]),
+        I2cTransaction::write_read(0x68, vec![0x10], vec![0x00, 0x00, 0x00, 0x00]),
+        I2cTransaction::write(0x68, vec![0x10, 0x00, 0x00]),
+        I2cTransaction::write(0x68, vec![0x10, 0x38, 0x00]),
+        I2cTransaction::write(0x68, vec![0x14, 0x01, 0x00]),
+    ];
+
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, MockDelay::new());
+
+    bmi323
+        .configure_any_motion(AnyMotionConfig::default(), MotionAxes::all())
+        .unwrap();
+
+    i2c.done();
+}
+
+#[test]
+fn test_configure_no_motion_preserves_other_features() {
+    let expectations = [
+        I2cTransaction::write(0x68, vec![0x41, 0x08, 0x00]),
+        I2cTransaction::write(0x68, vec![0x42, 0x1E, 0x10, 0x03, 0x00, 0xFA, 0xA0]),
+        I2cTransaction::write_read(0x68, vec![0x10], vec![0x00, 0x00, 0x38, 0x00]),
+        I2cTransaction::write(0x68, vec![0x10, 0x00, 0x00]),
+        I2cTransaction::write(0x68, vec![0x10, 0x3F, 0x00]),
+        I2cTransaction::write(0x68, vec![0x14, 0x01, 0x00]),
+    ];
+
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, MockDelay::new());
+
+    bmi323
+        .configure_no_motion(NoMotionConfig::default(), MotionAxes::all())
+        .unwrap();
+
+    i2c.done();
+}
+
+#[test]
+fn test_motion_config_rejects_values_that_do_not_fit() {
+    let expectations = [];
+    let mut i2c = I2cMock::new(&expectations);
+    let mut bmi323 = Bmi323::new_with_i2c(i2c.clone(), 0x68, MockDelay::new());
+    let config = AnyMotionConfig {
+        threshold: 4096,
+        ..AnyMotionConfig::default()
+    };
+
+    assert!(matches!(
+        bmi323.set_any_motion_config(config),
+        Err(bmi323::Error::InvalidConfig)
+    ));
 
     i2c.done();
 }
@@ -121,6 +193,6 @@ fn test_bmi323_read_int_source() {
     assert!(source.acc_drdy);
     assert!(!source.fifo_full);
     assert!(!source.fifo_watermark);
-    
+
     i2c.done();
 }

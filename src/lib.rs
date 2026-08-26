@@ -18,9 +18,10 @@ use defmt::Format;
 use serde::{Deserialize, Serialize};
 
 pub use types::{
-    AccelerometerPowerMode, AccelerometerRange, AverageNum, Bandwidth, Error, FifoConfig, FifoData,
-    GyroscopePowerMode, GyroscopeRange, InterruptEnable, InterruptLatch, InterruptLevel,InterruptPin,
-    InterruptMapping, InterruptOd, OutputDataRate, Sensor3DData, Sensor3DDataScaled, SensorType,
+    AccelerometerPowerMode, AccelerometerRange, AnyMotionConfig, AverageNum, Bandwidth, Error,
+    FifoConfig, FifoData, GyroscopePowerMode, GyroscopeRange, InterruptEnable, InterruptLatch,
+    InterruptLevel, InterruptMapping, InterruptOd, InterruptPin, MotionAxes, NoMotionConfig,
+    OutputDataRate, Sensor3DData, Sensor3DDataScaled, SensorType,
 };
 mod sensor_data;
 pub use interface::{I2cInterface, SpiInterface};
@@ -512,6 +513,18 @@ impl From<IOInterruptConfig> for u16 {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct InterruptSource {
+    pub no_motion: bool,
+    pub any_motion: bool,
+    pub flat: bool,
+    pub orientation: bool,
+    pub step_detector: bool,
+    pub step_counter: bool,
+    pub sig_motion: bool,
+    pub tilt: bool,
+    pub tap: bool,
+    pub i3c: bool,
+    pub err_status: bool,
+    pub temp_drdy: bool,
     pub gyr_drdy: bool,
     pub acc_drdy: bool,
     pub fifo_watermark: bool,
@@ -521,6 +534,18 @@ pub struct InterruptSource {
 impl From<u16> for InterruptSource {
     fn from(value: u16) -> Self {
         Self {
+            no_motion: (value & 1) != 0,
+            any_motion: (value & 1 << 1) != 0,
+            flat: (value & 1 << 2) != 0,
+            orientation: (value & 1 << 3) != 0,
+            step_detector: (value & 1 << 4) != 0,
+            step_counter: (value & 1 << 5) != 0,
+            sig_motion: (value & 1 << 6) != 0,
+            tilt: (value & 1 << 7) != 0,
+            tap: (value & 1 << 8) != 0,
+            i3c: (value & 1 << 9) != 0,
+            err_status: (value & 1 << 10) != 0,
+            temp_drdy: (value & 1 << 11) != 0,
             gyr_drdy: (value & 1 << 12) != 0,
             acc_drdy: (value & 1 << 13) != 0,
             fifo_watermark: (value & 1 << 14) != 0,

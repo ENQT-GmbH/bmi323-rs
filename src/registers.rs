@@ -42,8 +42,29 @@ impl Register {
     pub const INT_STATUS_INT1: u8 = 0x0D;
     pub const INT_STATUS_INT2: u8 = 0x0E;
     pub const INT_STATUS_INT_IBI: u8 = 0x0F;
+    /// Feature enable register
+    pub const FEATURE_IO0: u8 = 0x10;
+    /// Feature engine status register
+    pub const FEATURE_IO1: u8 = 0x11;
+    /// Feature engine initialization register
+    pub const FEATURE_IO2: u8 = 0x12;
+    /// Feature I/O synchronization register
+    pub const FEATURE_IO_STATUS: u8 = 0x14;
+    /// Feature engine control register
+    pub const FEATURE_CTRL: u8 = 0x40;
+    /// Feature memory address register
+    pub const FEATURE_DATA_ADDR: u8 = 0x41;
+    /// Feature memory data port
+    pub const FEATURE_DATA_TX: u8 = 0x42;
     /// Expected chip ID for BMI323
     pub const BMI323_CHIP_ID: u8 = 0x43;
     /// Soft reset command value
     pub const CMD_SOFT_RESET: u16 = 0xDEAF;
+
+    pub(crate) const FEATURE_ENGINE_INIT: u16 = 0x012C;
+    pub(crate) const FEATURE_ENGINE_DISABLED: u16 = 0x0000;
+    pub(crate) const FEATURE_ENGINE_ENABLED: u16 = 0x0001;
+    pub(crate) const FEATURE_IO_SYNC: u16 = 0x0001;
+    pub(crate) const ANY_MOTION_CONFIG_ADDR: u16 = 0x0005;
+    pub(crate) const NO_MOTION_CONFIG_ADDR: u16 = 0x0008;
 }

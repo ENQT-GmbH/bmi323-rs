@@ -77,10 +77,24 @@ fn test_interrupt_config_values() {
 }
 
 #[test]
-fn test_interrupt_source(){
-    assert_eq!(InterruptSource::from(1<<12), InterruptSource{gyr_drdy:true, ..Default::default()});
-    assert_eq!(InterruptSource::from(1<<13), InterruptSource{acc_drdy:true, ..Default::default()});
-    assert_eq!(InterruptSource::from(1<<14), InterruptSource{fifo_watermark:true, ..Default::default()});
-    assert_eq!(InterruptSource::from(1<<15), InterruptSource{fifo_full:true, ..Default::default()});
-    assert_eq!(InterruptSource::from(1<<12|1<<13), InterruptSource{gyr_drdy:true,acc_drdy:true, ..Default::default()});
+fn test_interrupt_source() {
+    let source = InterruptSource::from(u16::MAX);
+    assert!(source.no_motion);
+    assert!(source.any_motion);
+    assert!(source.flat);
+    assert!(source.orientation);
+    assert!(source.step_detector);
+    assert!(source.step_counter);
+    assert!(source.sig_motion);
+    assert!(source.tilt);
+    assert!(source.tap);
+    assert!(source.i3c);
+    assert!(source.err_status);
+    assert!(source.temp_drdy);
+    assert!(source.gyr_drdy);
+    assert!(source.acc_drdy);
+    assert!(source.fifo_watermark);
+    assert!(source.fifo_full);
+
+    assert_eq!(InterruptSource::from(0), InterruptSource::default());
 }
